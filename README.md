@@ -38,14 +38,14 @@ source setup/env.sh        # w KAŻDYM terminalu: osobny KUBECONFIG=~/.kube/kind
 Zasoby: basic ~4 CPU / 8 GB RAM, advanced (monitoring A08, Ollama A10) ~8 CPU / 16 GB.
 - Szkoleniowy `~/.kube/config` (kontekst `default`) **nie jest ruszany** — kind pisze do osobnego pliku.
 - `$LAB_DATA` (`~/k8s-lab-data`) jest zamontowany we wszystkich węzłach jako `/mnt/shared` → „współdzielony storage” na rejestr modeli. Modele widać z hosta: `ls ~/k8s-lab-data/models`.
-- **Wszystkie komendy uruchamiasz z korzenia repo (`k8s-lab/`)** — ścieżki w README są względem niego (np. `kubectl apply -f 01-basic/03-pod/pod.yaml`). Nie robisz `cd` do labów. Od B01 domyślny namespace to `ml`.
+- **Wszystkie komendy uruchamiasz z root repo (`k8s-lab/`)** — ścieżki w README są względem niego (np. `kubectl apply -f 01-basic/03-pod/pod.yaml`). Nie robisz `cd` do labów. Od B01 domyślny namespace to `ml`.
 - Reset: `./setup/reset-ns.sh` (czyści `ml`), `./setup/down.sh` (usuwa klaster), `./setup/clean-data.sh` (usuwa modele z `$LAB_DATA` — pliki Podów mają UID 10001, zwykłe `rm` nie zadziała).
 - Każdy lab: **Cel → Kroki → Zadanie → Pytania → Sprzątanie**.
 
 ## Jak pracować
 | Oznaczenie | Co robisz |
 |---|---|
-| ▶️ **Wklej do terminala** | kopiujesz blok i uruchamiasz z korzenia repo (`k8s-lab/`) |
+| ▶️ **Wklej do terminala** | kopiujesz blok i uruchamiasz z root repo (`k8s-lab/`) |
 | ### ✍️ Zadanie / #### ✍️ | **piszesz albo zmieniasz YAML sam** — opis w „Co zrobić” |
 | 📄 **Wzór** | przykład z laba — tylko czytasz/kopiujesz, **nie zmieniasz** |
 | 📝 **Twój plik** (nowy — tworzysz) | plik jeszcze nie istnieje; powstaje w `$WORK/...` (najczęściej przez ▶️ **Start:** = kopia wzoru) |
@@ -92,7 +92,7 @@ Zasoby: basic ~4 CPU / 8 GB RAM, advanced (monitoring A08, Ollama A10) ~8 CPU / 
 | [A01](03-advanced/01-scheduling-gpu-pools) | pule CPU/GPU: taints, affinity, TSC, PriorityClass + wywłaszczanie, PDB + drain | T I | ✅ |
 | [A02](03-advanced/02-multitenancy-quotas) | namespace zespołu: ResourceQuota (także GPU), LimitRange | T | ✅ |
 | [A03](03-advanced/03-gpu-fake-operator) | fake-gpu-operator: `nvidia.com/gpu`, multi-GPU, MIG, quota GPU | T I | ✅ |
-| [A04](03-advanced/04-gpu-real-kind) | **prawdziwe GPU** (RTX 4070 Ti SUPER) w kind: GPU Operator, time-slicing, vLLM | I (LLM) | ❌ |
+| [A04](03-advanced/04-gpu-real-kind) | *(opcjonalny — jeśli masz GPU NVIDIA; bez karty pomiń)* prawdziwe GPU w kind: GPU Operator, time-slicing, vLLM | I (LLM) | ⚪ |
 | [A05](03-advanced/05-canary-shadow-models) | header routing, shadow (mirror), canary modelu przez wagi | I | ✅ |
 | [A06](03-advanced/06-network-policies) | default deny + przepływy FTI (gateway → inference → feature store) | F I | ✅ |
 | [A07](03-advanced/07-security-psa-vap) | securityContext, PSA restricted, VAP: guardrails dla workloadów i Jobów ML | F T I | ✅ |
@@ -100,7 +100,7 @@ Zasoby: basic ~4 CPU / 8 GB RAM, advanced (monitoring A08, Ollama A10) ~8 CPU / 
 | [A09](03-advanced/09-troubleshooting) | 8 zepsutych workloadów ML, `kubectl debug` | — | ✅ |
 | [A10](03-advanced/10-capstone-llmops) | capstone: cała platforma + Ollama + Job ewaluacji LLM | F T I | ✅ |
 
-**Test:** ✅ = cały lab (kroki, zadania, EXTRA, rozwiązania w `solution/`) wykonany od początku do końca na kind v0.33.0 / Kubernetes v1.37.0 (2026-11-27); ❌ = jeszcze nie. Data testu jest też w nagłówku każdego laba (pole **Przetestowano**).
+**Test:** ✅ = cały lab (kroki, zadania, EXTRA, rozwiązania w `solution/`) wykonany od początku do końca na kind v0.33.0 / Kubernetes v1.37.0 (2026-11-27); ⚪ = lab opcjonalny, zależny od sprzętu (A04: prawdziwe GPU) — nie przetestowany end-to-end. Data testu jest też w nagłówku każdego laba (pole **Przetestowano**).
 
 ## Czego tu nie ma (i dlaczego)
 | Temat | Dlaczego poza ścieżką |

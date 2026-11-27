@@ -2,7 +2,7 @@
 
 **Czas:** ~75 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/01-scheduling-gpu-pools/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/01-scheduling-gpu-pools/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Zbudować typowy układ klastra ML: **pula CPU** (wszystko) i **pula GPU** (tylko to, co jawnie tego chce), z priorytetami *inference > trening* i bezpiecznym serwisem węzłów.
@@ -44,7 +44,7 @@ kubectl get pod -l job-name=train-gpu-pool -o wide   # NODE = mlops-worker2
 ▶️ **Wklej do terminala:**
 ```sh
 kubectl describe node mlops-worker2 | grep -A6 Allocatable       # ile CPU? dopasuj replicas w 03-advanced/01-scheduling-gpu-pools/batch-fill.yaml
-# CT 204: węzeł widzi 32 CPU hosta -> kubectl scale deploy training-fill --replicas=9 (9 x 3.5 CPU)
+# węzeł kind widzi wszystkie CPU hosta: np. przy 32 CPU -> kubectl scale deploy training-fill --replicas=9 (9 x 3.5 CPU)
 kubectl apply -f 03-advanced/01-scheduling-gpu-pools/batch-fill.yaml ; kubectl get pods -l app=training-fill -o wide
 kubectl apply -f 03-advanced/01-scheduling-gpu-pools/inference-spread.yaml
 kubectl get pods -o wide -w        # część training-fill -> Terminating/Pending (preempted)

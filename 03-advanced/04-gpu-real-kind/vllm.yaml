@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
       - name: vllm
-        image: vllm/vllm-openai:latest        # przypnij wersję po pierwszym udanym starcie
+        image: vllm/vllm-openai:v0.34.0       # przypięta wersja (aktualna przy pisaniu laba)
         args:
         - --model=Qwen/Qwen2.5-1.5B-Instruct
         - --served-model-name=qwen

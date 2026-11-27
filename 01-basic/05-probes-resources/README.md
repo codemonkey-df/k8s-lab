@@ -2,7 +2,7 @@
 
 **Czas:** ~45 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/05-probes-resources/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/05-probes-resources/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Poprawnie skonfigurować sondy dla serwera modelu (startup / readiness / liveness) i zasoby (requests/limits, klasy QoS). Zobaczyć OOMKilled.

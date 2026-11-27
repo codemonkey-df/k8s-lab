@@ -143,10 +143,12 @@ A06) echo "A06 — NetworkPolicy"
   ok "gateway → inference (/version 200)"        http 200 http://ml.127-0-0-1.nip.io/version
   ok "inference → Redis (/predict/entity/42 200)" http 200 http://ml.127-0-0-1.nip.io/predict/entity/42
   kubectl -n ml delete pod np-check --ignore-not-found >/dev/null 2>&1
-  kubectl -n ml run np-check --image=curlimages/curl --restart=Never -- bash -c \
-    'curl -s -m3 inference/version >/dev/null && echo INF; nc -z -w3 feature-store 6379 && echo REDIS; curl -s -m3 https://pypi.org >/dev/null && echo NET; echo done' >/dev/null 2>&1
+  # obraz curl nie ma basha ani pewnego nc → sh + curl; Redis: 0/52/56 = połączenie nawiązane, 6/7/28 = zablokowane
+  kubectl -n ml run np-check --image=curlimages/curl:8.23.0 --restart=Never --command -- sh -c \
+    'curl -s -m3 inference/version >/dev/null && echo INF; curl -s -m3 http://feature-store:6379 >/dev/null; case $? in 0|52|56) echo REDIS;; esac; curl -s -m3 https://pypi.org >/dev/null && echo NET; echo done' >/dev/null 2>&1
   kubectl -n ml wait --for=jsonpath='{.status.phase}'=Succeeded pod/np-check --timeout=60s >/dev/null 2>&1
   L=$($K logs np-check 2>/dev/null); kubectl -n ml delete pod np-check --wait=false >/dev/null 2>&1
+  ok "Pod testowy np-check się wykonał"          grep -q done <<<"$L"
   no "obcy Pod → inference zablokowany"         grep -q INF <<<"$L"
   no "obcy Pod → Redis zablokowany"             grep -q REDIS <<<"$L"
   no "obcy Pod → internet zablokowany"          grep -q NET <<<"$L" ;;

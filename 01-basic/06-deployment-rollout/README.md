@@ -3,7 +3,7 @@
 **Czas:** ~45 min  
 **Wymaga:** Service `inference` z B04.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/06-deployment-rollout/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/06-deployment-rollout/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Serwować model przez Deployment, wypuszczać nową wersję modelu bez przestoju, cofać złą wersję.

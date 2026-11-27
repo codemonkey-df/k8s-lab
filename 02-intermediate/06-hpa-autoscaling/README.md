@@ -3,7 +3,7 @@
 **Czas:** ~40 min  
 **Wymaga:** Deployment `inference` + Service.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/06-hpa-autoscaling/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/06-hpa-autoscaling/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Skalować serwer modelu automatycznie wraz z ruchem i zrozumieć, dlaczego CPU to dobra metryka dla małego modelu, a zła dla LLM.
@@ -14,7 +14,7 @@ Skalować serwer modelu automatycznie wraz z ruchem i zrozumieć, dlaczego CPU t
 
 ▶️ **Wklej do terminala:**
 ```sh
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.1/components.yaml
 kubectl -n kube-system patch deploy metrics-server --type=json \
   -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
 kubectl -n kube-system rollout status deploy/metrics-server

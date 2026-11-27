@@ -2,7 +2,7 @@
 
 **Czas:** ~60 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/07-security-psa-vap/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/07-security-psa-vap/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 1. Utwardzić serwer modelu do poziomu PSA `restricted`.

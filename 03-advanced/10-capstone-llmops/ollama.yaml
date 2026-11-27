@@ -25,7 +25,7 @@ metadata:
 data:
   MODEL: qwen2.5:1.5b        # model bazowy z rejestru Ollamy (0.5b oblewa bramkę eval: 0.50 < 0.75)
   NUM_THREAD: "6"           # Ollama liczy wątki z rdzeni HOSTA, nie z limitu kontenera/LXC:
-                            # domyślnie 0,3 tok/s, z 6 wątkami ~140 tok/s (zmierzone na CT 204)
+                            # w teście laba domyślnie 0,3 tok/s, z 6 wątkami ~140 tok/s
 ---
 apiVersion: apps/v1
 kind: Deployment

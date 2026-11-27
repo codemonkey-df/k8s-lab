@@ -3,7 +3,7 @@
 **Czas:** ~75 min  
 **Wymaga:** klaster z setup/ (bind-addressy pod monitoring są już w `kind-mlops.yaml`).  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/08-observability/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/08-observability/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Monitorować nie tylko „czy Pod żyje”, ale całe FTI: latencję i błędy modelu (I), świeżość cech (F), porażki treningu (T).
@@ -16,7 +16,7 @@ Monitorować nie tylko „czy Pod żyje”, ale całe FTI: latencję i błędy m
 ```sh
 helm upgrade --install --wait --timeout 15m -n monitoring --create-namespace \
   --repo https://prometheus-community.github.io/helm-charts \
-  kube-prometheus-stack kube-prometheus-stack -f 03-advanced/08-observability/values.yaml
+  kube-prometheus-stack kube-prometheus-stack --version 94.1.0 -f 03-advanced/08-observability/values.yaml
 kubectl -n monitoring get pods
 kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80 &
@@ -103,8 +103,8 @@ kubectl -n monitoring create configmap fti-dashboard --from-file=fti.json=03-adv
 
 ▶️ **Wklej do terminala:**
 ```sh
-helm upgrade --install --wait -n monitoring --repo https://grafana.github.io/helm-charts loki loki -f 03-advanced/08-observability/solution/loki-values.yaml
-helm upgrade --install --wait -n monitoring --repo https://grafana.github.io/helm-charts alloy alloy -f 03-advanced/08-observability/solution/alloy-values.yaml
+helm upgrade --install --wait -n monitoring --repo https://grafana.github.io/helm-charts loki loki --version 7.7.0 -f 03-advanced/08-observability/solution/loki-values.yaml
+helm upgrade --install --wait -n monitoring --repo https://grafana.github.io/helm-charts alloy alloy --version 1.16.0 -f 03-advanced/08-observability/solution/alloy-values.yaml
 kubectl apply -f 03-advanced/08-observability/solution/loki-datasource.yaml      # źródło Loki w Grafanie
 kubectl apply -f 03-advanced/07-security-psa-vap/solution/train-job-restricted.yaml   # coś, co loguje accuracy
 # Grafana -> Explore -> Loki: {namespace="ml", app="training"} |= "accuracy"

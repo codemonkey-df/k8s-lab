@@ -2,7 +2,7 @@
 
 **Czas:** ~40 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/02-multitenancy-quotas/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/02-multitenancy-quotas/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Jako admin platformy ML dać zespołowi namespace z budżetem: CPU/RAM, **GPU**, storage, liczba Jobów, zakaz NodePortów — i domyślnymi zasobami dla „zapominalskich”.

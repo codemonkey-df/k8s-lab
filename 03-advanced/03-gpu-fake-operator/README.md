@@ -4,11 +4,11 @@
 **Linki:** [fake-gpu-operator](https://github.com/run-ai/fake-gpu-operator)  
 **Wymaga:** A01 (etykieta `pool=gpu` + taint na `mlops-worker2`, PriorityClass `training-batch`).  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0), fake-gpu-operator 0.2.1  
-**Katalog:** `03-advanced/03-gpu-fake-operator/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/03-gpu-fake-operator/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Przećwiczyć całą **kubernetesową** stronę GPU: extended resource `nvidia.com/gpu`, kolejkowanie przy braku kart, multi-GPU, MIG, quota GPU — na emulowanym A100 (4 GPU na `mlops-worker2`).
-Prawdziwe obliczenia na GPU → A04.
+Prawdziwe obliczenia na GPU → A04 (opcjonalny, jeśli masz kartę NVIDIA).
 
 > Nie instaluj fake-gpu-operatora i prawdziwego GPU Operatora w tym samym klastrze. A04 używa osobnego klastra.
 
@@ -20,7 +20,7 @@ Prawdziwe obliczenia na GPU → A04.
 ```sh
 kubectl label node mlops-worker2 run.ai/simulated-gpu-node-pool=default nvidia.com/gpu.product=NVIDIA-A100-SXM4-40GB --overwrite
 # przetestowane 27.11 na chart 0.2.1; mig-faker ma 0 Podów — MIG łatamy ręcznie w kroku 4
-helm upgrade --install gpu-operator oci://ghcr.io/run-ai/fake-gpu-operator/fake-gpu-operator \
+helm upgrade --install gpu-operator oci://ghcr.io/run-ai/fake-gpu-operator/fake-gpu-operator --version 0.2.1 \
   -n gpu-operator --create-namespace -f 03-advanced/03-gpu-fake-operator/topology.yaml
 kubectl -n gpu-operator get pods
 kubectl -n gpu-operator rollout status ds/device-plugin --timeout=3m
@@ -96,7 +96,7 @@ w `team-nlp` uruchom Pod z `nvidia.com/gpu: 3` (+ toleration) → `exceeded quot
 1. Dlaczego dla `nvidia.com/gpu` requests == limits i nie ma overcommitu?
 2. 4 GPU na jednym węźle vs 4 GPU na różnych — jak to wymusić / czego potrzebuje trening rozproszony (NCCL, PyTorchJob)?
 3. Co dodaje do tego **Kueue** (ResourceFlavor → ClusterQueue → LocalQueue, fair sharing, preemption między zespołami)?
-4. Na Twoim RTX 4070 Ti SUPER — MIG zadziała? (A04)
+4. Czy MIG zadziała na Twojej karcie? (MIG mają tylko karty data center: A100, A30, H100, H200, B200… — GeForce/RTX nie; tam zostaje time-slicing z A04)
 
 ## Sprzątanie
 

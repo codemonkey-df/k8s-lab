@@ -1,4 +1,4 @@
-# Osobny klaster z PRAWDZIWYM GPU (RTX 4070 Ti SUPER).
+# Osobny klaster z PRAWDZIWYM GPU NVIDIA (lab opcjonalny — tylko jeśli masz kartę).
 # Mount /dev/null -> /var/run/nvidia-container-devices/all: nvidia-container-runtime
 # na hoście (accept-nvidia-visible-devices-as-volume-mounts=true) wstrzykuje wtedy GPU
 # do kontenera-węzła kind. Wymaga, by "nvidia" był domyślnym runtime Dockera.

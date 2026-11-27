@@ -2,7 +2,7 @@
 
 **Czas:** 2–4 h (bez gotowców — to sprawdzian)  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/10-capstone-llmops/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/10-capstone-llmops/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Złożyć wszystko, co było, w działającą „mini-platformę ML” i dołożyć serwowanie LLM z bramką ewaluacyjną.
@@ -33,7 +33,7 @@ kubectl apply -f 03-advanced/10-capstone-llmops/llm-eval-job.yaml
 kubectl -n llm logs -f job/llm-eval              # PASS/FAIL, score=1.00
 ```
 Trzy rzeczy, które wyszły w testach na CPU:
-- **wątki:** Ollama ustala liczbę wątków z rdzeni *hosta*, nie z limitu kontenera — w LXC dawało to 0,3 tok/s (40 s na „hi”). Z `num_thread 6` ~140 tok/s. Stąd alias `llm` z `PARAMETER num_thread` i `requests.cpu: 6` bez limitu CPU,
+- **wątki:** Ollama ustala liczbę wątków z rdzeni *hosta*, nie z limitu kontenera — w teście laba dawało to 0,3 tok/s (40 s na „hi”). Z `num_thread 6` ~140 tok/s. Stąd alias `llm` z `PARAMETER num_thread` i `requests.cpu: 6` bez limitu CPU,
 - **timeout Gatewaya:** Envoy domyślnie ucina żądanie po 15 s (`504 upstream request timeout`) → `timeouts.request: 300s` w HTTPRoute,
 - **model:** `qwen2.5:0.5b` oblewa bramkę (`score=0.50`), `qwen2.5:1.5b` przechodzi (`1.00`).
 

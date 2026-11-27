@@ -3,7 +3,7 @@
 **Czas:** ~40 min  
 **Wymaga:** Deployment `inference` z B06.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/07-configmap-secret/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/07-configmap-secret/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Wyjąć konfigurację z manifestu Deploymentu do ConfigMap (env i plik), a dane wrażliwe (token do Hugging Face / klucz API LLM) do Secret.

@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: curl
-        image: curlimages/curl
+        image: curlimages/curl:8.23.0
         command: ["sh", "-c", "while true; do curl -s -o /dev/null inference/burn?ms=100; done"]
         resources:
           requests: { cpu: 10m, memory: 16Mi }

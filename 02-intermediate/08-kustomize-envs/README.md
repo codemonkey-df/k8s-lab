@@ -2,7 +2,7 @@
 
 **Czas:** ~45 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/08-kustomize-envs/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/08-kustomize-envs/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Jedna baza manifestów inference + nakładki per środowisko (namespace, repliki, konfiguracja, routing). Zobaczyć, jak `configMapGenerator` rozwiązuje problem „zmiana ConfigMap nie restartuje Podów” z B07.

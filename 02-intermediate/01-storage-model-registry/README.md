@@ -2,7 +2,7 @@
 
 **Czas:** ~45 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/01-storage-model-registry/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/01-storage-model-registry/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Zbudować dwa magazyny, na których oprze się pipeline FTI:

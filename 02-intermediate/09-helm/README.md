@@ -2,7 +2,7 @@
 
 **Czas:** ~75 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/09-helm/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/09-helm/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Umieć (A) zainstalować i obsłużyć cudzy chart (tak instaluje się 90% narzędzi ML: Prometheus, KubeRay, GPU Operator, Kueue, vLLM stack) i (B) zapakować własny serwer modelu w chart z wartościami per środowisko.
@@ -12,10 +12,10 @@ Umieć (A) zainstalować i obsłużyć cudzy chart (tak instaluje się 90% narz�
 
 ▶️ **Wklej do terminala:**
 ```sh
-helm show values oci://ghcr.io/stefanprodan/charts/podinfo | head -30
-helm upgrade --install hello oci://ghcr.io/stefanprodan/charts/podinfo -n helm-demo --create-namespace --wait
+helm show values oci://ghcr.io/stefanprodan/charts/podinfo --version 6.17.0 | head -30
+helm upgrade --install hello oci://ghcr.io/stefanprodan/charts/podinfo --version 6.17.0 -n helm-demo --create-namespace --wait
 helm ls -n helm-demo ; helm get values hello -n helm-demo
-helm upgrade hello oci://ghcr.io/stefanprodan/charts/podinfo -n helm-demo --set replicaCount=2 --wait
+helm upgrade hello oci://ghcr.io/stefanprodan/charts/podinfo --version 6.17.0 -n helm-demo --set replicaCount=2 --wait
 kubectl -n helm-demo get pods
 helm history hello -n helm-demo ; helm rollback hello 1 -n helm-demo
 helm uninstall hello -n helm-demo

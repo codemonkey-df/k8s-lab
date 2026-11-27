@@ -3,7 +3,7 @@
 **Czas:** ~60 min  
 **Wymaga:** PVC `features` i `model-store` z I01.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/02-jobs-fti-pipeline/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/02-jobs-fti-pipeline/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Złożyć część **F** i **T** pipeline'u: cykliczne liczenie cech (CronJob), trening z bramką jakości (Job), równoległy sweep hiperparametrów (Indexed Job).

@@ -29,12 +29,15 @@ nodes:
     nodeRegistration:
       kubeletExtraArgs:
         node-labels: "ingress-ready=true"
-  # Gateway API (Envoy) wystawiony przez hostPort na control-plane (lab intermediate/05)
+  # Gateway API (Envoy) wystawiony przez hostPort na control-plane (lab intermediate/05).
+  # listenAddress 127.0.0.1 → porty tylko na localhost hosta, niewidoczne z sieci LAN.
   extraPortMappings:
   - containerPort: 80
     hostPort: 80
+    listenAddress: "127.0.0.1"
   - containerPort: 443
     hostPort: 443
+    listenAddress: "127.0.0.1"
   extraMounts:
   - hostPath: ${LAB_DATA}
     containerPath: /mnt/shared
@@ -42,6 +45,7 @@ nodes:
   extraPortMappings:
   - containerPort: 30080      # NodePort z labu basic/04
     hostPort: 30080
+    listenAddress: "127.0.0.1"
   extraMounts:
   - hostPath: ${LAB_DATA}
     containerPath: /mnt/shared

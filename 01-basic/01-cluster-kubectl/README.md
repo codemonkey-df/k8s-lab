@@ -2,7 +2,7 @@
 
 **Czas:** ~30 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/01-cluster-kubectl/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/01-cluster-kubectl/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Postawić własny klaster labowy, poruszać się po nim `kubectl` i przygotować namespace `ml`, w którym będzie żyła cała aplikacja FTI.

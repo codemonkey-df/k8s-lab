@@ -1,18 +1,40 @@
-# A04 — Prawdziwe GPU w kind (RTX 4070 Ti SUPER) + vLLM
+# A04 — (opcjonalny) Prawdziwe GPU NVIDIA w kind + vLLM
 
 **Czas:** ~90 min (+ pobieranie obrazów)  
-**Status:** eksperymentalne — LXC + kind + GPU. Wymaga **sudo** (konfiguracja Dockera na CT 204).  
+**Opcjonalny:** tylko jeśli masz kartę **NVIDIA** na hoście. **Nie masz GPU → pomiń ten lab** — żaden kolejny lab od niego nie zależy (patrz niżej, co już przećwiczyłeś bez karty).  
 **Linki:** [NVIDIA GPU Operator](https://github.com/NVIDIA/gpu-operator), [nvkind](https://github.com/NVIDIA/nvkind)  
-**Przetestowano:** ❌ jeszcze nie (wymaga sudo do konfiguracji Dockera)  
-**Katalog:** `03-advanced/04-gpu-real-kind/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Przetestowano:** ⚪ opcjonalny — zależny od sprzętu, nie przetestowany end-to-end (wymaga sudo do konfiguracji Dockera)  
+**Katalog:** `03-advanced/04-gpu-real-kind/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Uruchomić Pod widzący fizyczne GPU, poznać prawdziwy stos (GPU Operator: toolkit, device-plugin, GFD, DCGM), włączyć time-slicing i postawić serwer LLM (vLLM) na GPU.
 
-## 0. Stan wyjściowy (sprawdzone 27.11)
-- `nvidia-smi` działa w LXC (driver 590, CUDA 13.1), Docker ma runtime `nvidia`, jest `nvidia-ctk`.
-- **Brakuje:** `accept-nvidia-visible-devices-as-volume-mounts = true` i `nvidia` jako domyślny runtime.
-- W LXC toolkit ma `no-cgroups = true` (nie może zarządzać cgroupami urządzeń). Skutek: `docker run --gpus all ...` daje `Failed to initialize NVML: Unknown Error`, bo filtr urządzeń cgroup v2 kontenera blokuje `/dev/nvidia*`. Pomaga jawne `--device`. Węzeł kind jest kontenerem `--privileged`, więc go to nie dotyczy.
+## Nie masz GPU? Pomiń — to już umiesz
+Kubernetesowa strona GPU jest identyczna dla prawdziwej i emulowanej karty (dla schedulera `nvidia.com/gpu` to liczba w `allocatable`):
+
+| Umiejętność | Gdzie (bez karty) |
+|---|---|
+| `nvidia.com/gpu`, kolejka Podów, multi-GPU, MIG, quota GPU | A03 (fake-gpu-operator), A02 |
+| pule GPU: taint/toleration, affinity, priorytety, wywłaszczanie | A01, A03 |
+| metryki GPU (`DCGM_FI_DEV_GPU_UTIL`, pamięć) | A08 EXTRA (fake DCGM) |
+| serwowanie LLM (OpenAI API), bramka eval, rollback modelu | A10 (Ollama na CPU) |
+
+A04 dokłada tylko to, czego nie da się udawać: prawdziwy stos GPU Operatora (toolkit, runtime, GFD), realne skutki time-slicingu (brak izolacji pamięci) i strojenie vLLM.
+
+## 0. Wymagania — sprawdź, czy możesz
+- karta NVIDIA ze sterownikiem na hoście (`nvidia-smi` działa) — do vLLM z modelem 1.5B wystarczy ~8 GB VRAM,
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (`nvidia-ctk`) i **sudo** (zmiana konfiguracji Dockera),
+- ~20 GB wolnego dysku (obraz vLLM ~10 GB + model).
+
+▶️ **Wklej do terminala:**
+```sh
+nvidia-smi -L                                   # GPU 0: NVIDIA <Twoja karta>
+nvidia-ctk --version
+docker run --rm --gpus all nvidia/cuda:13.0.1-base-ubuntu24.04 nvidia-smi -L   # GPU widoczne w kontenerze?
+```
+Któreś polecenie nie działa → najpierw sterownik / toolkit, albo pomiń lab.
+
+> **Docker w kontenerze LXC (np. Proxmox):** toolkit ma tam zwykle `no-cgroups = true` i `docker run --gpus all` kończy się `Failed to initialize NVML: Unknown Error`. Pomaga jawne `--device /dev/nvidia0 --device /dev/nvidiactl --device /dev/nvidia-uvm`. Węzła kind (kontener `--privileged`) to nie dotyczy.
 
 ## Kroki
 
@@ -20,9 +42,6 @@ Uruchomić Pod widzący fizyczne GPU, poznać prawdziwy stos (GPU Operator: tool
 
 ▶️ **Wklej do terminala:**
 ```sh
-# baza: GPU w zwykłym kontenerze (w LXC z jawnymi urządzeniami, patrz wyżej)
-docker run --rm --gpus all --device /dev/nvidia0 --device /dev/nvidiactl --device /dev/nvidia-uvm \
-  nvidia/cuda:13.0.1-base-ubuntu24.04 nvidia-smi -L      # GPU 0: NVIDIA GeForce RTX 4070 Ti SUPER
 sudo nvidia-ctk runtime configure --runtime=docker --set-as-default
 sudo nvidia-ctk config --set accept-nvidia-visible-devices-as-volume-mounts=true --in-place
 sudo systemctl restart docker
@@ -45,7 +64,7 @@ docker exec mlops-gpu-worker ln -sf /sbin/ldconfig /sbin/ldconfig.real   # znany
 ▶️ **Wklej do terminala:**
 ```sh
 helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
-helm upgrade --install gpu-operator nvidia/gpu-operator -n gpu-operator --create-namespace \
+helm upgrade --install gpu-operator nvidia/gpu-operator --version v26.7.3 -n gpu-operator --create-namespace \
   --set driver.enabled=false --wait --timeout 15m
 kubectl -n gpu-operator get pods      # toolkit, device-plugin, gfd, dcgm-exporter, validator
 kubectl get node mlops-gpu-worker -o jsonpath='{.status.allocatable}' ; echo
@@ -56,7 +75,7 @@ kubectl get node mlops-gpu-worker --show-labels | tr ',' '\n' | grep nvidia.com/
 
 ▶️ **Wklej do terminala:**
 ```sh
-kubectl apply -f 03-advanced/04-gpu-real-kind/nvidia-smi.yaml && sleep 20 && kubectl logs nvidia-smi    # RTX 4070 Ti SUPER, 16 GB
+kubectl apply -f 03-advanced/04-gpu-real-kind/nvidia-smi.yaml && sleep 20 && kubectl logs nvidia-smi    # nazwa i pamięć Twojej karty
 ```
 
 ### 5. Time-slicing (1 karta → 4 „GPU”)
@@ -81,7 +100,7 @@ curl -s localhost:8000/v1/chat/completions -H 'content-type: application/json' \
   -d '{"model":"qwen","messages":[{"role":"user","content":"Czym jest Kubernetes? Jedno zdanie."}]}'
 curl -s localhost:8000/metrics | grep -E 'vllm:(num_requests|gpu_cache)'
 ```
-W drugim terminalu: `watch -n1 nvidia-smi` na hoście — zajęta pamięć ~80% karty.
+W drugim terminalu: `watch -n1 nvidia-smi` na hoście — zajęte ~80% pamięci karty (`--gpu-memory-utilization=0.80`). Mało VRAM (< 8 GB)? Obniż `--max-model-len` albo weź `Qwen/Qwen2.5-0.5B-Instruct`.
 
 ## ✍️ Zadanie
 

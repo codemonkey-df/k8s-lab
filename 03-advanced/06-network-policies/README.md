@@ -3,7 +3,7 @@
 **Czas:** ~50 min  
 **Wymaga:** inference + feature-store + feature-pipeline (I03/I04), Gateway (I05). kind ≥ 0.24 — kindnet egzekwuje NetworkPolicy.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `03-advanced/06-network-policies/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `03-advanced/06-network-policies/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Zamknąć namespace `ml` (default deny) i otworzyć tylko przepływy wynikające z architektury:
@@ -21,7 +21,7 @@ Model nie powinien móc „zadzwonić do internetu”, a feature store nie powin
 
 ▶️ **Wklej do terminala:**
 ```sh
-kubectl run t --image=curlimages/curl --rm -it --restart=Never -- \
+kubectl run t --image=curlimages/curl:8.23.0 --rm -it --restart=Never -- \
   sh -c 'curl -s -m3 inference/version; echo; nc -zv -w3 feature-store 6379; curl -sI -m3 https://pypi.org | head -1'
 ```
 

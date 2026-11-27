@@ -3,7 +3,7 @@
 **Czas:** ~50 min  
 **Wymaga:** Service `inference` (B04) z Deploymentem (I03).  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/05-gateway-api/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/05-gateway-api/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Wystawić inference przez Gateway API (Envoy Gateway) pod nazwą hosta i ścieżką — tak, jak w produkcji wystawia się wiele modeli za jednym adresem.

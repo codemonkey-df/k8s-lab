@@ -3,7 +3,7 @@
 **Czas:** ~40 min  
 **Wymaga:** CronJob `feature-pipeline` (I02), Deployment `inference` (I03).  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/04-statefulset-feature-store/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/04-statefulset-feature-store/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Dodać **online** feature store: feature pipeline pisze najnowsze cechy encji do Redisa, a inference pobiera je po `entity_id` (`GET /predict/entity/{id}`). To typowy podział w architekturze FTI: offline store do treningu, online store do inferencji o niskim opóźnieniu.

@@ -3,7 +3,7 @@
 **Czas:** ~30 min  
 **Wymaga:** Pod `inference` z B03.  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/04-service/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/04-service/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Dać serwerowi inference stały adres (ClusterIP + DNS), wystawić go na zewnątrz (NodePort) i zrozumieć, jak Service znajduje Pody (selektor → EndpointSlice).
@@ -23,7 +23,7 @@ kubectl describe svc inference      # Endpoints: <IP Poda>:8080
 
 ▶️ **Wklej do terminala:**
 ```sh
-kubectl run client --image=curlimages/curl --rm -it --restart=Never -- sh
+kubectl run client --image=curlimages/curl:8.23.0 --rm -it --restart=Never -- sh
 #  curl -s inference/version
 #  curl -s inference.ml.svc.cluster.local/version
 #  cat /etc/resolv.conf          # search ml.svc.cluster.local ...

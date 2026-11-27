@@ -2,7 +2,7 @@
 
 **Czas:** ~20 min  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `01-basic/02-image-kind-load/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `01-basic/02-image-kind-load/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Zbudować obraz `fti-lab:0.1` (feature pipeline + trening + inference w jednym obrazie) i dostarczyć go do węzłów kind bez rejestru.

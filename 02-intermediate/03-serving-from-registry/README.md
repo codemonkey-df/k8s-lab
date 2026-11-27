@@ -3,7 +3,7 @@
 **Czas:** ~40 min  
 **Wymaga:** model `v1` w rejestrze (I02), Service `inference` (B04).  
 **Przetestowano:** ✅ 2026-11-27 (kind v0.33.0, Kubernetes v1.37.0)  
-**Katalog:** `02-intermediate/03-serving-from-registry/` — polecenia uruchamiasz z korzenia repo (`k8s-lab/`)
+**Katalog:** `02-intermediate/03-serving-from-registry/` — polecenia uruchamiasz z root repo (`k8s-lab/`)
 
 ## Cel
 Domknąć pętlę FTI: inference serwuje model **wytrenowany w klastrze**, a nie wypalony w obrazie. Nowa wersja modelu = zmiana jednej zmiennej i rollout.
