@@ -1,6 +1,8 @@
 # Źródłuj w każdym nowym terminalu:  source setup/env.sh
 # Osobny kubeconfig -> główny ~/.kube/config zostaje nietknięty.
 export CLUSTER=mlops
+# kind/kubectl/helm instalowane przez prereq.sh lądują w ~/.local/bin
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
 export KUBECONFIG="$HOME/.kube/kind-mlops.yaml"
 # Katalog hosta montowany we WSZYSTKICH węzłach jako /mnt/shared
 # (udaje współdzielony storage typu NFS/S3 -> rejestr modeli widoczny z każdego węzła).

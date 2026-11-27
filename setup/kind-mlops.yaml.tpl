@@ -1,5 +1,5 @@
 # Klaster labowy: 1 control-plane + 2 workery.
-# Generowany przez up.sh (envsubst wstawia ${LAB_DATA}) -> kind-mlops.yaml
+# Generowany przez up.sh (sed wstawia ${LAB_DATA}) -> kind-mlops.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: mlops

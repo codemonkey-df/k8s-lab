@@ -17,12 +17,25 @@ i feature store, po canary nowego modelu, GPU, monitoring i serwowanie LLM.
 
 ## Start
 
+**Potrzebujesz tylko Dockera** (użytkownik w grupie `docker`). Resztę ogarnia `setup/prereq.sh` — `up.sh` woła go sam:
+
+| Co masz | Co się dzieje |
+|---|---|
+| nic poza Dockerem | instaluje kind v0.33.0, kubectl v1.37.2, helm v4.3.2 do `~/.local/bin` (bez sudo, z kontrolą SHA-256) |
+| już masz kind / kubectl / helm | **używa Twoich** — najwyżej ostrzeże o wersji (kind < 0.24: brak NetworkPolicy; helm < 4: inne flagi) |
+| już masz klaster `mlops` | `up.sh` go używa, nie tworzy nowego |
+| brak Dockera | zatrzymuje się i podaje polecenia (`get.docker.com` + `usermod -aG docker`) — to jedyny krok z sudo |
+
+Sam test, bez instalowania: `./setup/prereq.sh --check` (sprawdza też CPU/RAM, limity inotify i `/dev/kmsg` w LXC).
+
 ▶️ **Wklej do terminala:**
 ```sh
-source setup/env.sh        # w KAŻDYM terminalu: osobny KUBECONFIG=~/.kube/kind-mlops.yaml
-./setup/up.sh              # klaster kind "mlops": 1 control-plane + 2 workery
+git clone https://github.com/codemonkey-df/k8s-lab && cd k8s-lab
+source setup/env.sh        # w KAŻDYM terminalu: osobny KUBECONFIG=~/.kube/kind-mlops.yaml (+ ~/.local/bin w PATH)
+./setup/up.sh              # prereq.sh + klaster kind "mlops": 1 control-plane + 2 workery
 ./app/build.sh 0.1         # obraz fti-lab:0.1 -> kind load
 ```
+Zasoby: basic ~4 CPU / 8 GB RAM, advanced (monitoring A08, Ollama A10) ~8 CPU / 16 GB.
 - Szkoleniowy `~/.kube/config` (kontekst `default`) **nie jest ruszany** — kind pisze do osobnego pliku.
 - `$LAB_DATA` (`~/k8s-lab-data`) jest zamontowany we wszystkich węzłach jako `/mnt/shared` → „współdzielony storage” na rejestr modeli. Modele widać z hosta: `ls ~/k8s-lab-data/models`.
 - **Wszystkie komendy uruchamiasz z korzenia repo (`k8s-lab/`)** — ścieżki w README są względem niego (np. `kubectl apply -f 01-basic/03-pod/pod.yaml`). Nie robisz `cd` do labów. Od B01 domyślny namespace to `ml`.
@@ -107,7 +120,7 @@ Każde z nich składa się z obiektów przerobionych w tych labach.
 ```
 k8s-lab/
 ├── README.md            # ten plik
-├── setup/               # env.sh, up.sh, down.sh, reset-ns.sh, clean-data.sh, check.sh, kind-mlops.yaml.tpl
+├── setup/               # prereq.sh, env.sh, up.sh, down.sh, reset-ns.sh, clean-data.sh, check.sh, kind-mlops.yaml.tpl
 ├── work/                # TWOJE manifesty z ćwiczeń (tworzy env.sh)
 ├── app/                 # aplikacja FTI: fti/{features,train,serve}.py, Dockerfile, build.sh, pyproject.toml (uv + ruff)
 ├── 01-basic/            # B01–B07

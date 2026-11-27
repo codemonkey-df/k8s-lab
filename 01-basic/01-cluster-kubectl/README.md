@@ -17,7 +17,7 @@ Każdy zespół ML dostaje „swój kawałek klastra” — zwykle namespace z l
 ▶️ **Wklej do terminala:**
 ```sh
 source setup/env.sh          # KUBECONFIG=~/.kube/kind-mlops.yaml
-./setup/up.sh
+./setup/up.sh                # najpierw prereq.sh: brakujące kind/kubectl/helm → ~/.local/bin, istniejące zostają
 kubectl config current-context   # kind-mlops
 kubectl config get-contexts
 kubectl cluster-info
