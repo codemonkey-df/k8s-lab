@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+    spec:
+      serviceAccountName: inference
+      containers:
+      - name: server
+        image: fti-lab
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: inference-config
+        ports:
+        - { containerPort: 8080, name: http }
+        startupProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: { path: /ready, port: http }
+        livenessProbe:
+          httpGet: { path: /healthz, port: http }
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits:   { memory: 512Mi }

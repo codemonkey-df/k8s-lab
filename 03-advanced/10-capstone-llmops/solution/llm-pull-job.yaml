@@ -1,0 +1,35 @@
+# Pobranie modelu do PVC + alias "llm" (jedyny Pod w llm z dostępem do internetu)
+apiVersion: batch/v1
+kind: Job
+metadata: { name: llm-pull, namespace: llm }
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata: { labels: { app: llm-pull } }
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+      - name: pull
+        image: ollama/ollama:0.12.6
+        envFrom: [{ configMapRef: { name: llm-config } }]
+        env: [{ name: OLLAMA_HOST, value: "127.0.0.1:11435" }]   # nie koliduje z działającym serwerem
+        command: ["sh", "-c"]
+        args:
+        - |
+          set -e
+          ollama serve & PID=$!
+          sleep 5
+          ollama pull "$MODEL"
+          printf 'FROM %s\nPARAMETER num_thread %s\n' "$MODEL" "$NUM_THREAD" > /tmp/Modelfile
+          ollama create llm -f /tmp/Modelfile
+          echo "alias llm -> $MODEL"
+          kill $PID
+        resources:
+          requests: { cpu: 500m, memory: 512Mi }
+          limits:   { memory: 2Gi }
+        volumeMounts: [{ name: models, mountPath: /root/.ollama }]
+      volumes:
+      - { name: models, persistentVolumeClaim: { claimName: ollama-models } }

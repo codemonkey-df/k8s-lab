@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  labels:
+    app: inference
+    part-of: fti
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inference
+  strategy:
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels:
+        app: inference
+        part-of: fti
+    spec:
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: inference-config
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-token
+              key: HF_TOKEN
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: serving-config
+          mountPath: /etc/fti
+          readOnly: true
+        lifecycle:
+          preStop:
+            exec: { command: ["sleep", "5"] }
+        startupProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: { path: /ready, port: http }
+        livenessProbe:
+          httpGet: { path: /healthz, port: http }
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits:   { memory: 512Mi }
+      volumes:
+      - name: serving-config
+        configMap:
+          name: inference-config
+          items:
+          - key: serving.json
+            path: serving.json

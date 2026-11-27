@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata: { name: broken-03, namespace: debug }
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train", "--out", "/tmp/m"]
+        resources:
+          requests: { cpu: "64", memory: 1Gi }

@@ -1,0 +1,87 @@
+# Dwie wersje modelu jako osobne Deploymenty + Service'y.
+# Ten sam obraz, różne modele z rejestru (I03): v1 = stable, v2 = canary.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wine-v1
+  labels: { app: wine, track: stable, part-of: fti }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: wine, version: v1 }
+  template:
+    metadata:
+      labels: { app: wine, version: v1, track: stable, part-of: fti }
+    spec:
+      initContainers:
+      - name: fetch-model
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "cp -v /registry/v1/* /model/"]
+        volumeMounts:
+        - { name: registry, mountPath: /registry, readOnly: true }
+        - { name: model, mountPath: /model }
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env: [{ name: MODEL_PATH, value: /model/model.joblib }]
+        ports: [{ containerPort: 8080, name: http }]
+        readinessProbe: { httpGet: { path: /ready, port: http } }
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits:   { memory: 512Mi }
+        volumeMounts: [{ name: model, mountPath: /model, readOnly: true }]
+      volumes:
+      - { name: registry, persistentVolumeClaim: { claimName: model-store, readOnly: true } }
+      - { name: model, emptyDir: {} }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wine-v2
+  labels: { app: wine, track: canary, part-of: fti }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: wine, version: v2 }
+  template:
+    metadata:
+      labels: { app: wine, version: v2, track: canary, part-of: fti }
+    spec:
+      initContainers:
+      - name: fetch-model
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "cp -v /registry/v2/* /model/"]
+        volumeMounts:
+        - { name: registry, mountPath: /registry, readOnly: true }
+        - { name: model, mountPath: /model }
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env: [{ name: MODEL_PATH, value: /model/model.joblib }]
+        ports: [{ containerPort: 8080, name: http }]
+        readinessProbe: { httpGet: { path: /ready, port: http } }
+        resources:
+          requests: { cpu: 50m, memory: 256Mi }
+          limits:   { memory: 512Mi }
+        volumeMounts: [{ name: model, mountPath: /model, readOnly: true }]
+      volumes:
+      - { name: registry, persistentVolumeClaim: { claimName: model-store, readOnly: true } }
+      - { name: model, emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: wine-v1, labels: { part-of: fti } }
+spec:
+  selector: { app: wine, version: v1 }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: wine-v2, labels: { part-of: fti } }
+spec:
+  selector: { app: wine, version: v2 }
+  ports: [{ name: http, port: 80, targetPort: http }]

@@ -1,0 +1,58 @@
+# Online feature store = Redis jako StatefulSet: stała nazwa (feature-store-0),
+# stabilny DNS przez headless Service i własny PVC per replika.
+apiVersion: v1
+kind: Service
+metadata:
+  name: feature-store
+  labels:
+    app: feature-store
+    part-of: fti
+spec:
+  clusterIP: None              # headless -> feature-store-0.feature-store.ml.svc
+  selector:
+    app: feature-store
+  ports:
+  - { name: redis, port: 6379, targetPort: redis }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: feature-store
+  labels:
+    app: feature-store
+    part-of: fti
+spec:
+  serviceName: feature-store
+  replicas: 1
+  selector:
+    matchLabels:
+      app: feature-store
+  template:
+    metadata:
+      labels:
+        app: feature-store
+        part-of: fti
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        args: ["--appendonly", "yes"]          # trwałość: AOF w /data
+        ports:
+        - { containerPort: 6379, name: redis }
+        readinessProbe:
+          tcpSocket: { port: redis }
+        livenessProbe:
+          exec: { command: ["redis-cli", "ping"] }
+        resources:
+          requests: { cpu: 50m, memory: 64Mi }
+          limits:   { memory: 256Mi }
+        volumeMounts:
+        - { name: data, mountPath: /data }
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi

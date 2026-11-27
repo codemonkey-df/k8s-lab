@@ -1,0 +1,69 @@
+# Zadanie A01: inference PREFERUJE pulę CPU (waga 100), na GPU schodzi tylko, gdy CPU się skończy.
+# TSC zmienione na ScheduleAnyway — twarde DoNotSchedule wymusiłoby 2+2 i przebiło preferencję.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-ha
+  labels:
+    part-of: fti
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: inference-ha
+  template:
+    metadata:
+      labels:
+        app: inference-ha
+        part-of: fti
+    spec:
+      priorityClassName: inference-critical
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        nodeTaintsPolicy: Honor
+        labelSelector:
+          matchLabels:
+            app: inference-ha
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+        resources:
+          requests:
+            cpu: '2'
+            memory: 256Mi
+          limits:
+            memory: 512Mi
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: pool
+                operator: In
+                values:
+                - cpu
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: inference-ha
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app: inference-ha

@@ -1,0 +1,40 @@
+# Data scientist: podgląd wszystkiego w ml (wbudowana ClusterRole "view")
+# + logi i exec do Podów treningowych, ale bez odczytu Secretów (view ich nie daje).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: data-scientist
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: data-scientist-view
+subjects:
+- { kind: ServiceAccount, name: data-scientist, namespace: ml }
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: debug-pods
+rules:
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["pods/portforward"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: data-scientist-debug
+subjects:
+- { kind: ServiceAccount, name: data-scientist, namespace: ml }
+roleRef:
+  kind: Role
+  name: debug-pods
+  apiGroup: rbac.authorization.k8s.io

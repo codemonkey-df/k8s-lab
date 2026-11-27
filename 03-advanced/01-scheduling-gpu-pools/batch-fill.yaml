@@ -1,0 +1,24 @@
+# Wypełnia pulę GPU niskopriorytetowym "treningiem". Dobierz replicas/cpu tak,
+# by zająć prawie całe Allocatable węzła (kubectl describe node mlops-worker2).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: training-fill
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: training-fill }
+  template:
+    metadata:
+      labels: { app: training-fill }
+    spec:
+      priorityClassName: training-batch
+      nodeSelector: { pool: gpu }
+      tolerations:
+      - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      containers:
+      - name: busy
+        image: busybox:1.36
+        command: ["sleep", "infinity"]
+        resources:
+          requests: { cpu: "3500m", memory: 64Mi }

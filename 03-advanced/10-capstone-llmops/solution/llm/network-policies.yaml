@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny, namespace: llm }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-dns, namespace: llm }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      podSelector: { matchLabels: { k8s-app: kube-dns } }
+    ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
+---
+# Do Ollamy tylko Envoy (Gateway) i Job ewaluacji
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: ollama-ingress, namespace: llm }
+spec:
+  podSelector: { matchLabels: { app: ollama } }
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system } }
+    - podSelector: { matchLabels: { app: llm-eval } }
+    ports: [{ port: 11434 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: llm-eval-egress, namespace: llm }
+spec:
+  podSelector: { matchLabels: { app: llm-eval } }
+  policyTypes: [Egress]
+  egress:
+  - to: [{ podSelector: { matchLabels: { app: ollama } } }]
+    ports: [{ port: 11434 }]
+---
+# Internet (HTTPS do rejestru modeli) ma TYLKO Job pobierający model
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: llm-pull-egress, namespace: llm }
+spec:
+  podSelector: { matchLabels: { app: llm-pull } }
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+    ports: [{ port: 443 }]

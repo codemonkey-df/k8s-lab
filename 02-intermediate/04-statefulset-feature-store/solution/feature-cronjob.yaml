@@ -1,0 +1,50 @@
+# $WORK/feature-cronjob.yaml po I04: pipeline pisze też do online store
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: feature-pipeline
+  labels:
+    part-of: fti
+spec:
+  schedule: '*/5 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 1800
+      template:
+        metadata:
+          labels:
+            app: feature-pipeline
+            part-of: fti
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: features
+            image: fti-lab:0.1
+            imagePullPolicy: IfNotPresent
+            command:
+            - python
+            - -m
+            - fti.features
+            env:
+            - name: FEATURES_DIR
+              value: /data/features
+            - name: REDIS_HOST
+              value: feature-store
+            volumeMounts:
+            - name: features
+              mountPath: /data/features
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 512Mi
+          volumes:
+          - name: features
+            persistentVolumeClaim:
+              claimName: features

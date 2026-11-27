@@ -1,0 +1,27 @@
+# Strategic merge patch dla Deploymentu inference (I03) — poziom PSA "restricted"
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+      - name: fetch-model
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: [ALL] }
+      containers:
+      - name: server
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: [ALL] }
+        volumeMounts:
+        - { name: tmp, mountPath: /tmp }
+      volumes:
+      - name: tmp
+        emptyDir: {}

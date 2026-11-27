@@ -1,0 +1,62 @@
+# LLMOps: Job ewaluacyjny jako bramka jakości przed promocją modelu/promptu.
+# Zestaw pytań w ConfigMap, wynik = odsetek odpowiedzi zawierających oczekiwane słowo.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-eval
+  namespace: llm
+data:
+  cases.json: |
+    [
+      {"q": "What is the capital of France? Answer with one word.", "expect": "paris"},
+      {"q": "How many days are in a week? Answer with a number.", "expect": "7"},
+      {"q": "What color is the sky on a clear day? One word.", "expect": "blue"},
+      {"q": "What is 12 + 30? Answer with a number only.", "expect": "42"}
+    ]
+  eval.py: |
+    import json, os, sys, urllib.request
+    url = os.environ["LLM_URL"] + "/v1/chat/completions"
+    cases = json.load(open("/eval/cases.json"))
+    ok = 0
+    for c in cases:
+        body = json.dumps({"model": os.environ["MODEL"], "temperature": 0,
+                           "messages": [{"role": "user", "content": c["q"]}]}).encode()
+        req = urllib.request.Request(url, body, {"content-type": "application/json"})
+        ans = json.load(urllib.request.urlopen(req, timeout=120))["choices"][0]["message"]["content"]
+        hit = c["expect"] in ans.lower()
+        ok += hit
+        print(("PASS" if hit else "FAIL"), "|", c["q"], "->", ans.strip()[:80])
+    score = ok / len(cases)
+    print(f"score={score:.2f} threshold={os.environ['THRESHOLD']}")
+    sys.exit(0 if score >= float(os.environ["THRESHOLD"]) else 1)
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: llm-eval
+  namespace: llm
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: llm-eval }
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: eval
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "/eval/eval.py"]
+        env:
+        - { name: LLM_URL,   value: "http://ollama.llm.svc.cluster.local" }
+        - { name: MODEL,     value: "llm" }          # alias z ollama.yaml
+        - { name: THRESHOLD, value: "0.75" }
+        volumeMounts: [{ name: eval, mountPath: /eval }]
+        resources:
+          requests: { cpu: 50m, memory: 128Mi }
+          limits:   { memory: 256Mi }
+      volumes:
+      - name: eval
+        configMap: { name: llm-eval }

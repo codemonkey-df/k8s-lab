@@ -1,0 +1,57 @@
+# Krok 3: nowa wersja przez plik — zmienione MODEL_VERSION i change-cause (2 linie względem przykładu).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  labels:
+    app: inference
+    part-of: fti
+  annotations:
+    kubernetes.io/change-cause: "model baked-1"
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: inference
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # najpierw nowy Pod...
+      maxUnavailable: 0    # ...stary znika dopiero, gdy nowy jest Ready -> zero-downtime
+  template:
+    metadata:
+      labels:
+        app: inference
+        part-of: fti
+    spec:
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_VERSION
+          value: baked-1
+        - name: STARTUP_DELAY
+          value: "10"
+        ports:
+        - containerPort: 8080
+          name: http
+        # Kończący się Pod jeszcze przez chwilę dostaje ruch (kube-proxy/Envoy nie zdążyły
+        # usunąć go z endpointów). 5 s pauzy przed SIGTERM = brak zgubionych żądań.
+        lifecycle:
+          preStop:
+            exec: { command: ["sleep", "5"] }
+        startupProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /healthz, port: http }
+          periodSeconds: 10
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits:   { memory: 512Mi }

@@ -1,0 +1,23 @@
+# fake-gpu-operator (Run:AI) — emulacja stosu NVIDIA bez fizycznego GPU.
+# gpuProduct musi zawierać "40GB"/"80GB", żeby mig-faker rozpoznał geometrię MIG.
+topology:
+  nodePools:
+    default:
+      gpuProduct: NVIDIA-A100-SXM4-40GB
+      gpuCount: 4
+      gpuMemory: 40
+  nodePoolLabelKey: run.ai/simulated-gpu-node-pool
+  migStrategy: mixed
+
+devicePlugin:
+  enabled: true
+statusUpdater:
+  enabled: true
+statusExporter:
+  enabled: true          # mock DCGM exporter (metryki GPU dla Prometheusa)
+topologyServer:
+  enabled: true
+migFaker:
+  enabled: true
+kwokGpuDevicePlugin:
+  enabled: false         # fake GPU na prawdziwych workerach kind, nie na wirtualnych węzłach KWOK

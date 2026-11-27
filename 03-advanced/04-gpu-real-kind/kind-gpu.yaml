@@ -1,0 +1,15 @@
+# Osobny klaster z PRAWDZIWYM GPU (RTX 4070 Ti SUPER).
+# Mount /dev/null -> /var/run/nvidia-container-devices/all: nvidia-container-runtime
+# na hoście (accept-nvidia-visible-devices-as-volume-mounts=true) wstrzykuje wtedy GPU
+# do kontenera-węzła kind. Wymaga, by "nvidia" był domyślnym runtime Dockera.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: mlops-gpu
+nodes:
+- role: control-plane
+- role: worker
+  labels:
+    pool: gpu
+  extraMounts:
+  - hostPath: /dev/null
+    containerPath: /var/run/nvidia-container-devices/all

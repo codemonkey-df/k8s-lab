@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "fti.fullname" . }}
+  labels: {{- include "fti.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels: {{- include "fti.selectorLabels" . | nindent 6 }}
+  strategy:
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  template:
+    metadata:
+      labels: {{- include "fti.labels" . | nindent 8 }}
+      annotations:
+        # zmiana ConfigMap -> nowy hash -> rollout (rozwiązanie problemu z B07)
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with .Values.model.registryClaim }}
+      initContainers:
+      - name: fetch-model
+        image: {{ include "fti.image" $ }}
+        imagePullPolicy: {{ $.Values.image.pullPolicy }}
+        command: ["sh", "-c", "cp -v /registry/{{ $.Values.model.version }}/* /model/"]
+        volumeMounts:
+        - { name: registry, mountPath: /registry, readOnly: true }
+        - { name: model, mountPath: /model }
+      {{- end }}
+      containers:
+      - name: server
+        image: {{ include "fti.image" . }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "fti.fullname" . }}
+        {{- if .Values.model.registryClaim }}
+        env:
+        - { name: MODEL_PATH, value: /model/model.joblib }
+        {{- end }}
+        ports:
+        - { containerPort: 8080, name: http }
+        startupProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: { path: /ready, port: http }
+        livenessProbe:
+          httpGet: { path: /healthz, port: http }
+        resources:
+          {{- $res := deepCopy .Values.resources }}
+          {{- if gt (int .Values.gpu.count) 0 }}
+          {{- $_ := set $res.limits .Values.gpu.resourceName (int .Values.gpu.count) }}
+          {{- end }}
+          {{- toYaml $res | nindent 10 }}
+        {{- if .Values.model.registryClaim }}
+        volumeMounts:
+        - { name: model, mountPath: /model, readOnly: true }
+        {{- end }}
+      {{- if gt (int .Values.gpu.count) 0 }}
+      tolerations:
+      - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      {{- with .Values.gpu.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.model.registryClaim }}
+      volumes:
+      - name: registry
+        persistentVolumeClaim: { claimName: {{ . }}, readOnly: true }
+      - name: model
+        emptyDir: {}
+      {{- end }}

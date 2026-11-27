@@ -1,0 +1,55 @@
+# A06: default-deny + tylko potrzebne przepływy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny, namespace: ml }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-dns, namespace: ml }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
+      podSelector: { matchLabels: { k8s-app: kube-dns } }
+    ports: [{ protocol: UDP, port: 53 }, { protocol: TCP, port: 53 }]
+---
+# Gateway (Envoy) i Prometheus -> inference (stable i candidate) :8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: inference-ingress, namespace: ml }
+spec:
+  podSelector: { matchLabels: { app: inference } }
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system } }
+    - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: monitoring } }
+    ports: [{ port: 8080 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: to-feature-store, namespace: ml }
+spec:
+  podSelector:
+    matchExpressions: [{ key: app, operator: In, values: [inference, feature-pipeline] }]
+  policyTypes: [Egress]
+  egress:
+  - to: [{ podSelector: { matchLabels: { app: feature-store } } }]
+    ports: [{ port: 6379 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: feature-store-ingress, namespace: ml }
+spec:
+  podSelector: { matchLabels: { app: feature-store } }
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions: [{ key: app, operator: In, values: [inference, feature-pipeline] }]
+    ports: [{ port: 6379 }]

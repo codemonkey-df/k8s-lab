@@ -1,0 +1,16 @@
+# Inference (ruch produkcyjny) > trening (batch, można wywłaszczyć i powtórzyć)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: inference-critical
+value: 100000
+preemptionPolicy: PreemptLowerPriority
+description: "Serwowanie modeli — może wywłaszczać trening"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: training-batch
+value: 1000
+preemptionPolicy: Never          # trening nigdy nie wyrzuca innych — czeka w kolejce
+description: "Joby treningowe/batch"

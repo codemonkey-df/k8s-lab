@@ -1,0 +1,111 @@
+# Inference "stable": wersja modelu z ConfigMap model-release (release.env), utwardzony (A07),
+# priorytet + rozłożenie po węzłach (A01), PDB (drain bez przerwy), HPA (I06), Service + HTTPRoute (I05).
+# fetch-model: gdy wersji nie ma w rejestrze (świeży klaster), startuje z modelu wypalonego w obrazie.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: inference, namespace: ml, labels: { app: inference, part-of: fti } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: inference, track: stable } }
+  strategy: { rollingUpdate: { maxSurge: 1, maxUnavailable: 0 } }
+  template:
+    metadata: { labels: { app: inference, track: stable, part-of: fti } }
+    spec:
+      priorityClassName: inference-critical
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        nodeTaintsPolicy: Honor
+        labelSelector: { matchLabels: { app: inference, track: stable } }
+      initContainers:
+      - name: fetch-model
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_VERSION
+          valueFrom: { configMapKeyRef: { name: model-release, key: MODEL_VERSION } }
+        command: ["sh", "-c"]
+        args:
+        - |
+          set -e
+          SRC=/registry/$MODEL_VERSION
+          if [ -f $SRC/model.joblib ]; then cp -v $SRC/model.joblib $SRC/metrics.json /model/
+          else echo "UWAGA: brak $SRC w rejestrze -> model wypalony w obrazie"; cp -v /opt/model/* /model/; fi
+        securityContext: &hardened
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: [ALL] }
+        resources:
+          requests: { cpu: 50m, memory: 64Mi }
+          limits:   { memory: 128Mi }
+        volumeMounts:
+        - { name: registry, mountPath: /registry, readOnly: true }
+        - { name: model,    mountPath: /model }
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - { name: MODEL_PATH, value: /model/model.joblib }
+        - { name: REDIS_HOST, value: feature-store }
+        ports: [{ containerPort: 8080, name: http }]
+        lifecycle: { preStop: { exec: { command: ["sleep", "5"] } } }
+        startupProbe:   { httpGet: { path: /ready, port: http }, periodSeconds: 2, failureThreshold: 60 }
+        readinessProbe: { httpGet: { path: /ready, port: http } }
+        livenessProbe:  { httpGet: { path: /healthz, port: http } }
+        securityContext: *hardened
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits:   { memory: 512Mi }
+        volumeMounts:
+        - { name: model, mountPath: /model, readOnly: true }
+        - { name: tmp,   mountPath: /tmp }
+      volumes:
+      - name: registry
+        persistentVolumeClaim: { claimName: model-store, readOnly: true }
+      - { name: model, emptyDir: {} }
+      - { name: tmp,   emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: inference, namespace: ml, labels: { part-of: fti } }
+spec:
+  selector: { app: inference, track: stable }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: inference, namespace: ml, labels: { part-of: fti } }
+spec:
+  parentRefs: [{ name: ml-gateway, namespace: infra }]
+  hostnames: [ml.127-0-0-1.nip.io]
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: /predict }
+    - path: { type: Exact, value: /version }
+    backendRefs: [{ name: inference, port: 80 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: inference, namespace: ml, labels: { part-of: fti } }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: inference }
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: inference, namespace: ml }
+spec:
+  minAvailable: 1
+  selector: { matchLabels: { app: inference, track: stable } }

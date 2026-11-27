@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: broken-08, namespace: debug }
+spec:
+  selector: { matchLabels: { app: broken-08 } }
+  template:
+    metadata: { labels: { app: broken-08 } }
+    spec:
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env: [{ name: STARTUP_DELAY, value: "30" }]
+        ports: [{ containerPort: 8080, name: http }]
+        livenessProbe:
+          httpGet: { path: /ready, port: http }
+          periodSeconds: 5
+          failureThreshold: 2
+        resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 512Mi } }

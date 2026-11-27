@@ -1,0 +1,15 @@
+# Etap 1: shadow — odpowiada stable, kopia ruchu do kandydata (A05)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: inference, namespace: ml, labels: { part-of: fti } }
+spec:
+  parentRefs: [{ name: ml-gateway, namespace: infra }]
+  hostnames: [ml.127-0-0-1.nip.io]
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: /predict }
+    - path: { type: Exact, value: /version }
+    filters:
+    - type: RequestMirror
+      requestMirror: { backendRef: { name: inference-candidate, port: 80 } }
+    backendRefs: [{ name: inference, port: 80 }]

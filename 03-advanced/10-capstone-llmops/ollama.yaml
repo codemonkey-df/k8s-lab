@@ -1,0 +1,114 @@
+# LLM na CPU: Ollama + mały model (qwen2.5:1.5b, ~1 GB). Ten sam wzorzec co inference FTI:
+# initContainer pobiera model do PVC, serwer startuje z gotowym modelem, sondy, zasoby.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm
+  labels:
+    pod-security.kubernetes.io/enforce: baseline     # obraz ollama działa jako root
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+  namespace: llm
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-config
+  namespace: llm
+data:
+  MODEL: qwen2.5:1.5b        # model bazowy z rejestru Ollamy (0.5b oblewa bramkę eval: 0.50 < 0.75)
+  NUM_THREAD: "6"           # Ollama liczy wątki z rdzeni HOSTA, nie z limitu kontenera/LXC:
+                            # domyślnie 0,3 tok/s, z 6 wątkami ~140 tok/s (zmierzone na CT 204)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: llm
+  labels: { app: ollama, part-of: llm }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }        # RWO PVC -> jeden Pod naraz
+  selector:
+    matchLabels: { app: ollama }
+  template:
+    metadata:
+      labels: { app: ollama, part-of: llm }
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+      - name: pull-model
+        image: ollama/ollama:0.12.6
+        envFrom: [{ configMapRef: { name: llm-config } }]
+        command: ["sh", "-c"]
+        args:
+        - |
+          ollama serve & PID=$!
+          sleep 5
+          ollama pull "$MODEL"
+          # alias "llm": klienci nie znają konkretnego modelu, a parametry CPU są zaszyte w aliasie
+          printf 'FROM %s\nPARAMETER num_thread %s\n' "$MODEL" "$NUM_THREAD" > /tmp/Modelfile
+          ollama create llm -f /tmp/Modelfile
+          kill $PID
+        volumeMounts: [{ name: models, mountPath: /root/.ollama }]
+        resources:
+          requests: { cpu: 500m, memory: 512Mi }
+          limits:   { memory: 2Gi }
+      containers:
+      - name: ollama
+        image: ollama/ollama:0.12.6
+        env:
+        - { name: OLLAMA_KEEP_ALIVE, value: "-1" }    # trzymaj model w pamięci
+        - { name: OLLAMA_NUM_PARALLEL, value: "2" }
+        ports: [{ containerPort: 11434, name: http }]
+        startupProbe:
+          httpGet: { path: /, port: http }
+          periodSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          httpGet: { path: /api/tags, port: http }
+        livenessProbe:
+          httpGet: { path: /, port: http }
+          periodSeconds: 20
+        resources:
+          requests: { cpu: "6", memory: 2Gi }   # = NUM_THREAD; bez limitu CPU (throttling = wolne tokeny)
+          limits:   { memory: 4Gi }
+          # GPU (klaster z A04): odkomentuj
+          #   nvidia.com/gpu: 1
+        volumeMounts: [{ name: models, mountPath: /root/.ollama }]
+      volumes:
+      - name: models
+        persistentVolumeClaim: { claimName: ollama-models }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: llm
+spec:
+  selector: { app: ollama }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: llm
+  namespace: llm
+spec:
+  parentRefs:
+  - { name: ml-gateway, namespace: infra }
+  hostnames: [llm.127-0-0-1.nip.io]
+  rules:
+  - matches:
+    - path: { type: PathPrefix, value: /v1 }      # tylko API zgodne z OpenAI
+    timeouts:
+      request: 300s     # domyślnie Envoy ucina po 15 s -> 504, a generowanie na CPU trwa dłużej
+    backendRefs:
+    - { name: ollama, port: 80 }

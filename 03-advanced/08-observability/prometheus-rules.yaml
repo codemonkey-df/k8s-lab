@@ -1,0 +1,48 @@
+# Alerty dla całego FTI: I (serwowanie), F (świeżość cech), T (trening)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fti-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+  - name: fti-inference
+    rules:
+    - alert: InferenceDown
+      # "or vector(0)": przy 0 replik nie ma targetów -> sum() zwraca pustkę, nie 0, i alert by milczał
+      expr: (sum(up{namespace="ml", app="inference"}) or vector(0)) == 0
+      for: 1m
+      labels: { severity: critical }
+      annotations:
+        summary: "Żaden Pod inference nie odpowiada na scrape"
+    - alert: InferenceHighLatencyP95
+      expr: |
+        histogram_quantile(0.95,
+          sum by (le) (rate(fti_predict_latency_seconds_bucket{namespace="ml"}[5m]))) > 0.25
+      for: 5m
+      labels: { severity: warning }
+      annotations:
+        summary: "p95 latencji predykcji > 250 ms ({{ $value | humanizeDuration }})"
+    - alert: InferenceErrorRate
+      expr: |
+        sum(rate(fti_prediction_errors_total{namespace="ml"}[5m]))
+          / clamp_min(sum(rate(fti_predictions_total{namespace="ml"}[5m])), 1e-9) > 0.05
+      for: 5m
+      labels: { severity: warning }
+      annotations:
+        summary: "Ponad 5% żądań do modelu kończy się błędem"
+  - name: fti-pipeline
+    rules:
+    - alert: FeaturesStale
+      expr: time() - kube_cronjob_status_last_successful_time{namespace="ml", cronjob="feature-pipeline"} > 900
+      for: 1m
+      labels: { severity: warning }
+      annotations:
+        summary: "Cechy nieodświeżone od >15 min — model dostaje stare dane"
+    - alert: TrainingJobFailed
+      expr: kube_job_status_failed{namespace="ml"} > 0
+      labels: { severity: warning }
+      annotations:
+        summary: "Job {{ $labels.job_name }} zakończył się porażką (bramka jakości / OOM?)"

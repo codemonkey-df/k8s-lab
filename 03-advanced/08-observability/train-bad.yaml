@@ -1,0 +1,74 @@
+# Zawsze odrzucany model (bramka jakości) — wywołuje alert TrainingJobFailed.
+# Utwardzony, bo po A07 namespace ml ma PSA restricted + VAP guardrails.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-bad
+  labels:
+    part-of: fti
+    model-version: bad
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: training
+        part-of: fti
+        model-version: bad
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command:
+        - python
+        - -m
+        - fti.train
+        env:
+        - name: MODEL_VERSION
+          value: bad
+        - name: MODEL_DIR
+          value: /models/bad
+        - name: FEATURES_PATH
+          value: /data/features/latest.csv
+        - name: N_ESTIMATORS
+          value: '1'
+        - name: MAX_DEPTH
+          value: '1'
+        - name: MIN_ACCURACY
+          value: '0.99'
+        volumeMounts:
+        - name: features
+          mountPath: /data/features
+          readOnly: true
+        - name: models
+          mountPath: /models
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: features
+        persistentVolumeClaim:
+          claimName: features
+          readOnly: true
+      - name: models
+        persistentVolumeClaim:
+          claimName: model-store
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault

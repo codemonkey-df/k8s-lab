@@ -1,0 +1,18 @@
+# Platforma FTI w namespace ml jednym poleceniem:  kubectl apply -k solution/platform
+# Wersja modelu w produkcji = release.env (promocja: ../release.sh vN -> zmiana pliku + apply).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- namespace.yaml          # ns ml: PSA restricted, guardrails VAP
+- priorityclasses.yaml    # A01
+- vap-guardrails.yaml     # A07
+- quota.yaml              # A02
+- network-policies.yaml   # A06
+- storage.yaml            # I01: PV/PVC rejestru + PVC cech
+- feature-store.yaml      # I04 (utwardzony)
+- feature-pipeline.yaml   # I02 (utwardzony, pcha cechy do Redisa)
+- inference.yaml          # I03+I05+I06+A01: Deployment, Service, HTTPRoute, HPA, PDB
+configMapGenerator:
+- name: model-release
+  namespace: ml
+  envs: [release.env]     # nowa wersja -> nowy hash nazwy -> rollout inference

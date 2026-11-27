@@ -1,0 +1,7 @@
+# LLM "zamknięty": Ollama bez internetu, model pobiera osobny Job (llm-release.sh).
+#   kubectl apply -k solution/llm && ./llm-release.sh qwen2.5:1.5b
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ollama.yaml
+- network-policies.yaml

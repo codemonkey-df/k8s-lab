@@ -1,0 +1,30 @@
+# Sweep w namespace zespołu: 8 triali po 1 CPU przy quota requests.cpu=4.
+# Job controller tworzy tyle Podów, ile zmieści quota (reszta: FailedCreate exceeded quota),
+# i dokłada kolejne, gdy poprzednie się kończą -> Job kończy się, tylko wolniej.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hpo-team-nlp
+  namespace: team-nlp
+spec:
+  completionMode: Indexed
+  completions: 8
+  parallelism: 8
+  backoffLimitPerIndex: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: hpo }
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: trial
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "python -m fti.train --features /nonexistent && sleep 20"]
+        env:
+        - { name: SWEEP, value: "1" }
+        - { name: MODEL_DIR, value: /tmp/sweep }
+        resources:
+          requests: { cpu: "1", memory: 256Mi }
+          limits:   { memory: 768Mi }

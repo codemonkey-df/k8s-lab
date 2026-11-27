@@ -1,0 +1,19 @@
+# Model, który ładuje się 40 s (STARTUP_DELAY) — jak duży model / LLM.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slow-model
+  labels:
+    app: slow-model
+spec:
+  containers:
+  - name: server
+    image: fti-lab:0.1
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: STARTUP_DELAY
+      value: "40"
+    ports:
+    - containerPort: 8080
+      name: http
+    # ZADANIE: dodaj startupProbe, readinessProbe i livenessProbe

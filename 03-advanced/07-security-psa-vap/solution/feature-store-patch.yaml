@@ -1,0 +1,18 @@
+# Zadanie A: Redis (StatefulSet feature-store) na poziomie PSA "restricted".
+# Obraz redis:7-alpine ma użytkownika redis = UID 999; fsGroup daje mu zapis do PVC /data.
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+      - name: redis
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: { drop: [ALL] }

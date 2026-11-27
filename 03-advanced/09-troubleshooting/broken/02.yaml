@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: broken-02, namespace: debug }
+spec:
+  selector: { matchLabels: { app: broken-02 } }
+  template:
+    metadata: { labels: { app: broken-02 } }
+    spec:
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn", "fti.server:app", "--host", "0.0.0.0", "--port", "8080"]
+        resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 512Mi } }

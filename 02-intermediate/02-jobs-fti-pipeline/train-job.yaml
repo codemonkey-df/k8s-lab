@@ -1,0 +1,43 @@
+# T: trening modelu v1 z najnowszych cech -> rejestr /models/v1
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-v1
+  labels:
+    part-of: fti
+    model-version: v1
+spec:
+  backoffLimit: 2                  # ile razy ponawiać przy błędzie
+  activeDeadlineSeconds: 900       # twardy limit czasu całego Joba
+  ttlSecondsAfterFinished: 86400   # sprzątanie po dobie
+  template:
+    metadata:
+      labels:
+        app: training
+        part-of: fti
+        model-version: v1
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train"]
+        env:
+        - { name: MODEL_VERSION, value: v1 }
+        - { name: MODEL_DIR,     value: /models/v1 }
+        - { name: FEATURES_PATH, value: /data/features/latest.csv }
+        - { name: N_ESTIMATORS,  value: "10" }
+        - { name: MAX_DEPTH,     value: "2" }      # celowo słabszy niż v2 (I03)
+        - { name: MIN_ACCURACY,  value: "0.80" }     # bramka jakości
+        volumeMounts:
+        - { name: features, mountPath: /data/features, readOnly: true }
+        - { name: models,   mountPath: /models }
+        resources:
+          requests: { cpu: 500m, memory: 512Mi }
+          limits:   { memory: 1Gi }
+      volumes:
+      - name: features
+        persistentVolumeClaim: { claimName: features, readOnly: true }
+      - name: models
+        persistentVolumeClaim: { claimName: model-store }

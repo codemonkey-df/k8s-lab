@@ -1,0 +1,43 @@
+replicaCount: 2
+
+image:
+  registry: ""                # np. "ghcr.io/ja" -> ghcr.io/ja/fti-lab:0.1 (bez końcowego /)
+  repository: fti-lab
+  tag: ""                     # pusty -> .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+model:
+  version: v1                 # katalog w rejestrze (PVC model-store)
+  registryClaim: model-store  # pusty -> model wypalony w obrazie (/opt/model)
+
+config:
+  LOG_LEVEL: INFO
+
+resources:
+  requests: { cpu: 100m, memory: 256Mi }
+  limits:   { memory: 512Mi }
+
+# GPU: >0 dodaje limit nvidia.com/gpu + toleration (lab A03/A04)
+gpu:
+  count: 0
+  resourceName: nvidia.com/gpu
+  nodeSelector: {}
+
+service:
+  port: 80
+
+gateway:
+  enabled: false
+  parent: { name: ml-gateway, namespace: infra }
+  host: helm.127-0-0-1.nip.io
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPU: 60
+
+# CronJoby feature pipeline: nazwa -> harmonogram (pusty -> "*/5 * * * *")
+featureCronjobs: {}
+#  hourly: "0 * * * *"
+#  nightly: "0 2 * * *"

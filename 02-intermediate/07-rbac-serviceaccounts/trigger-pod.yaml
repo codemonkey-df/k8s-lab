@@ -1,0 +1,21 @@
+# "Orkiestrator" (np. krok Argo/Airflow) odpalający trening przez API Kubernetesa.
+# Oficjalny obraz kubectl nie ma shella -> każdy krok to osobny initContainer
+# (wykonują się po kolei), a ostatni kontener celowo próbuje czegoś zabronionego.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: retrain-trigger
+spec:
+  serviceAccountName: pipeline-runner
+  restartPolicy: Never
+  initContainers:
+  - name: create-job
+    image: registry.k8s.io/kubectl:v1.37.2
+    args: ["create", "job", "retrain-from-pod", "--from=cronjob/feature-pipeline"]
+  - name: list-jobs
+    image: registry.k8s.io/kubectl:v1.37.2
+    args: ["get", "jobs"]
+  containers:
+  - name: try-delete-inference
+    image: registry.k8s.io/kubectl:v1.37.2
+    args: ["delete", "deploy", "inference"]      # -> Forbidden (Pod kończy się Error)

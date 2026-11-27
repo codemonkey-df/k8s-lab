@@ -1,0 +1,32 @@
+# Model za słaby -> exit 1. podFailurePolicy: błąd bramki jakości (exit 1) to NIE jest
+# błąd przejściowy -> nie ponawiaj, od razu FailJob. Inne kody (np. OOM 137) -> ponawiaj.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-bad
+  labels:
+    part-of: fti
+spec:
+  backoffLimit: 3
+  podFailurePolicy:
+    rules:
+    - action: FailJob
+      onExitCodes:
+        containerName: train
+        operator: In
+        values: [1]
+  template:
+    metadata:
+      labels:
+        app: training
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train", "--out", "/tmp/bad", "--version", "bad"]
+        env:
+        - { name: N_ESTIMATORS, value: "1" }
+        - { name: MAX_DEPTH,    value: "1" }
+        - { name: MIN_ACCURACY, value: "0.99" }

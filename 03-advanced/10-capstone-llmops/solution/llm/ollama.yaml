@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: llm
+  labels:
+    pod-security.kubernetes.io/enforce: baseline     # obraz ollama działa jako root
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: ollama-models, namespace: llm }
+spec:
+  accessModes: ["ReadWriteOnce"]      # local-path: PV przypięty do węzła -> Job pull trafia tam, gdzie Ollama
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: llm-config, namespace: llm }
+data:
+  MODEL: qwen2.5:1.5b
+  NUM_THREAD: "6"
+---
+# Serwer bez initContainera: model jest już w PVC (Job llm-pull), więc Ollama nie potrzebuje egress.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: ollama, namespace: llm, labels: { app: ollama, part-of: llm } }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: ollama } }
+  template:
+    metadata: { labels: { app: ollama, part-of: llm } }
+    spec:
+      priorityClassName: inference-critical       # A01: serwowanie > batch
+      automountServiceAccountToken: false
+      containers:
+      - name: ollama
+        image: ollama/ollama:0.12.6
+        env:
+        - { name: OLLAMA_KEEP_ALIVE, value: "-1" }
+        - { name: OLLAMA_NUM_PARALLEL, value: "2" }
+        ports: [{ containerPort: 11434, name: http }]
+        startupProbe:   { httpGet: { path: /, port: http }, periodSeconds: 5, failureThreshold: 60 }
+        readinessProbe: { httpGet: { path: /api/tags, port: http } }
+        livenessProbe:  { httpGet: { path: /, port: http }, periodSeconds: 20 }
+        resources:
+          requests: { cpu: "6", memory: 2Gi }
+          limits:   { memory: 4Gi }
+          # pula GPU (klaster z A04): odkomentuj i dodaj toleration nvidia.com/gpu
+          #   nvidia.com/gpu: 1
+        volumeMounts: [{ name: models, mountPath: /root/.ollama }]
+      volumes:
+      - { name: models, persistentVolumeClaim: { claimName: ollama-models } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: ollama, namespace: llm }
+spec:
+  selector: { app: ollama }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: { name: llm, namespace: llm }
+spec:
+  parentRefs: [{ name: ml-gateway, namespace: infra }]
+  hostnames: [llm.127-0-0-1.nip.io]
+  rules:
+  - matches: [{ path: { type: PathPrefix, value: /v1 } }]
+    timeouts: { request: 300s }
+    backendRefs: [{ name: ollama, port: 80 }]

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "fti.fullname" . }}
+  labels: {{- include "fti.labels" . | nindent 4 }}
+spec:
+  selector: {{- include "fti.selectorLabels" . | nindent 4 }}
+  ports:
+  - { name: http, port: {{ .Values.service.port }}, targetPort: http }

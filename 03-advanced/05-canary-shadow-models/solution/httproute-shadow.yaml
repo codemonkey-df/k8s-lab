@@ -1,0 +1,18 @@
+# Shadow (mirror): 100% odpowiedzi z v1, kopia ruchu leci do v2 (odpowiedzi v2 są
+# odrzucane). Porównujesz predykcje/latencję v2 na produkcyjnym ruchu bez ryzyka.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: wine
+  labels: { part-of: fti }
+spec:
+  parentRefs:
+  - { name: ml-gateway, namespace: infra }
+  hostnames: [wine.127-0-0-1.nip.io]
+  rules:
+  - filters:
+    - type: RequestMirror
+      requestMirror:
+        backendRef: { name: wine-v2, port: 80 }
+    backendRefs:
+    - { name: wine-v1, port: 80 }

@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+- pairs:
+    part-of: fti
+    app.kubernetes.io/name: inference
+  includeSelectors: false
+resources:
+- serviceaccount.yaml
+- deployment.yaml
+- service.yaml
+# Generator dokleja hash do nazwy -> zmiana konfiguracji = automatyczny rollout
+configMapGenerator:
+- name: inference-config
+  literals:
+  - LOG_LEVEL=INFO
+  - MODEL_VERSION=baked-0
+images:
+- name: fti-lab
+  newTag: "0.1"

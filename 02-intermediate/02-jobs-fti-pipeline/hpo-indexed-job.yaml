@@ -1,0 +1,42 @@
+# Hyperparameter sweep: Indexed Job — każdy Pod dostaje JOB_COMPLETION_INDEX (0..4)
+# i trenuje jeden wariant z SWEEP_GRID (app/fti/train.py) -> /models/sweep-1/trial-<i>
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hpo-sweep-1
+  labels:
+    part-of: fti
+spec:
+  completionMode: Indexed
+  completions: 5
+  parallelism: 3
+  backoffLimitPerIndex: 1          # porażka jednego triala nie zabija całego sweepu
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: hpo
+        part-of: fti
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: trial
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train"]
+        env:
+        - { name: SWEEP,         value: "1" }
+        - { name: MODEL_VERSION, value: sweep-1 }
+        - { name: MODEL_DIR,     value: /models/sweep-1 }
+        - { name: FEATURES_PATH, value: /data/features/latest.csv }
+        volumeMounts:
+        - { name: features, mountPath: /data/features, readOnly: true }
+        - { name: models,   mountPath: /models }
+        resources:
+          requests: { cpu: 250m, memory: 256Mi }
+          limits:   { memory: 768Mi }
+      volumes:
+      - name: features
+        persistentVolumeClaim: { claimName: features, readOnly: true }
+      - name: models
+        persistentVolumeClaim: { claimName: model-store }

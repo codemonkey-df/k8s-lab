@@ -1,0 +1,14 @@
+replicaCount: 3
+model:
+  version: v2
+config:
+  LOG_LEVEL: WARNING
+gateway:
+  enabled: true
+  host: helm-prod.127-0-0-1.nip.io
+autoscaling:
+  enabled: true
+  minReplicas: 3
+featureCronjobs:
+  hourly: "0 * * * *"
+  frequent: ""

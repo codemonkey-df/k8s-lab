@@ -1,0 +1,96 @@
+# $WORK/inference.yaml po I03: model v2 z rejestru + change-cause (zmiany względem deployment.yaml: 2 miejsca)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  labels:
+    app: inference
+    part-of: fti
+  annotations:
+    kubernetes.io/change-cause: model v2 (N_ESTIMATORS=200)
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inference
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: inference
+        part-of: fti
+    spec:
+      initContainers:
+      - name: fetch-model
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_VERSION
+          value: v2
+        command:
+        - sh
+        - -c
+        args:
+        - |
+          set -e
+          SRC=/registry/$MODEL_VERSION
+          test -f $SRC/model.joblib || { echo "brak modelu $SRC"; exit 1; }
+          cp -v $SRC/model.joblib $SRC/metrics.json /model/
+        volumeMounts:
+        - name: registry
+          mountPath: /registry
+          readOnly: true
+        - name: model
+          mountPath: /model
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_PATH
+          value: /model/model.joblib
+        - name: LOG_LEVEL
+          value: INFO
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: model
+          mountPath: /model
+          readOnly: true
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sleep
+              - '5'
+        startupProbe:
+          httpGet:
+            path: /ready
+            port: http
+          periodSeconds: 2
+          failureThreshold: 60
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            memory: 512Mi
+      volumes:
+      - name: registry
+        persistentVolumeClaim:
+          claimName: model-store
+          readOnly: true
+      - name: model
+        emptyDir: {}

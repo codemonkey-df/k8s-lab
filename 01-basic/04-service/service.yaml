@@ -1,0 +1,31 @@
+# ClusterIP: stały adres i DNS wewnątrz klastra (inference.ml.svc.cluster.local)
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference
+  labels:
+    part-of: fti
+spec:
+  selector:
+    app: inference
+  ports:
+  - name: http
+    port: 80            # port Service (klienci)
+    targetPort: http    # nazwany port kontenera (8080)
+---
+# NodePort 30080 -> w setup/kind-mlops.yaml zmapowany na host (worker)
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference-nodeport
+  labels:
+    part-of: fti
+spec:
+  type: NodePort
+  selector:
+    app: inference
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    nodePort: 30080

@@ -1,0 +1,32 @@
+# Lokalne środowisko dev dla kodu FTI (uv) + lint/format (ruff).
+# Obraz fti-lab nadal buduje się z requirements.txt (Dockerfile) — trzymaj wersje w obu miejscach takie same.
+#   cd app && uv sync                       # .venv z zależnościami + ruff
+#   uv run ruff check . && uv run ruff format --check .
+#   uv run python -m fti.train --out /tmp/model --version local
+[project]
+name = "fti"
+version = "0.1.0"
+description = "Aplikacja FTI (feature / training / inference) do labów k8s-lab"
+requires-python = ">=3.12"
+dependencies = [
+    "scikit-learn==1.5.2",
+    "pandas==2.2.3",
+    "joblib==1.4.2",
+    "fastapi==0.115.6",
+    "uvicorn==0.32.1",
+    "redis==5.2.1",
+    "prometheus-client==0.21.1",
+]
+
+[dependency-groups]
+dev = ["ruff>=0.8"]
+
+[tool.uv]
+package = false          # to nie biblioteka do publikacji — tylko środowisko do uruchamiania i lintu
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]

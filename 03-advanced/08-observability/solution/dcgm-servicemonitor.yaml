@@ -1,0 +1,15 @@
+# ServiceMonitor na DCGM exporter. Na fake-gpu-operatorze (A03) Service nazywa się nvidia-dcgm-exporter
+# w ns gpu-operator; w prawdziwym GPU Operatorze (A04) — nvidia-dcgm-exporter w ns gpu-operator
+# (tam chart ma też dcgmExporter.serviceMonitor.enabled=true, wtedy ten plik jest zbędny).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcgm-exporter
+  namespace: monitoring
+spec:
+  namespaceSelector: { matchNames: [gpu-operator] }
+  selector:
+    matchLabels: { app: nvidia-dcgm-exporter }
+  endpoints:
+  - port: gpu-metrics
+    interval: 15s

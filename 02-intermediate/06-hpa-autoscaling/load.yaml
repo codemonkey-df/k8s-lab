@@ -1,0 +1,19 @@
+# Generator ruchu: 3 klienty wołające /burn (sztuczne obciążenie CPU modelu)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: load }
+  template:
+    metadata:
+      labels: { app: load }
+    spec:
+      containers:
+      - name: curl
+        image: curlimages/curl
+        command: ["sh", "-c", "while true; do curl -s -o /dev/null inference/burn?ms=100; done"]
+        resources:
+          requests: { cpu: 10m, memory: 16Mi }

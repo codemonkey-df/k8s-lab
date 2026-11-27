@@ -1,0 +1,29 @@
+# Trening, który MUSI trafić na pulę GPU: toleration (wolno mu) + nodeAffinity (musi).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-gpu-pool
+  labels: { part-of: fti }
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: training }
+    spec:
+      restartPolicy: Never
+      priorityClassName: training-batch
+      tolerations:
+      - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - { key: pool, operator: In, values: [gpu] }
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train", "--out", "/tmp/m", "--version", "gpu-pool"]

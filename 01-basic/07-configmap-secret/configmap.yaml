@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-config
+  labels:
+    part-of: fti
+data:
+  LOG_LEVEL: DEBUG
+  MODEL_VERSION: baked-0
+  # konfiguracja jako plik (np. progi, mapowanie klas)
+  serving.json: |
+    {"class_names": ["cultivar_0", "cultivar_1", "cultivar_2"], "threshold": 0.5}

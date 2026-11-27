@@ -1,0 +1,42 @@
+# F: feature pipeline co 5 min (w realu: co godzinę / dobę)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: feature-pipeline
+  labels:
+    part-of: fti
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid          # nie startuj nowego, jeśli poprzedni jeszcze liczy
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 1800
+      template:
+        metadata:
+          labels:
+            app: feature-pipeline
+            part-of: fti
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: features
+            image: fti-lab:0.1
+            imagePullPolicy: IfNotPresent
+            command: ["python", "-m", "fti.features"]
+            env:
+            - name: FEATURES_DIR
+              value: /data/features
+            volumeMounts:
+            - name: features
+              mountPath: /data/features
+            resources:
+              requests: { cpu: 100m, memory: 256Mi }
+              limits:   { memory: 512Mi }
+          volumes:
+          - name: features
+            persistentVolumeClaim:
+              claimName: features

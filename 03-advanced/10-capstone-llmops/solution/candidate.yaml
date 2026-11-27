@@ -1,0 +1,48 @@
+# Kandydat vN obok stable (shadow -> canary). Te same etykiety app=inference (netpol, PodMonitor),
+# inny track -> Service "inference" go NIE obejmuje. Użycie: ./candidate.sh vN
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: inference-candidate, namespace: ml, labels: { app: inference, part-of: fti } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: inference, track: candidate } }
+  template:
+    metadata: { labels: { app: inference, track: candidate, part-of: fti } }
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001, seccompProfile: { type: RuntimeDefault } }
+      initContainers:
+      - name: fetch-model
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "cp -v /registry/__VERSION__/model.joblib /registry/__VERSION__/metrics.json /model/"]
+        securityContext: &hardened { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+        resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 128Mi } }
+        volumeMounts:
+        - { name: registry, mountPath: /registry, readOnly: true }
+        - { name: model,    mountPath: /model }
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        env:
+        - { name: MODEL_PATH, value: /model/model.joblib }
+        - { name: REDIS_HOST, value: feature-store }
+        ports: [{ containerPort: 8080, name: http }]
+        readinessProbe: { httpGet: { path: /ready, port: http } }
+        securityContext: *hardened
+        resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 512Mi } }
+        volumeMounts:
+        - { name: model, mountPath: /model, readOnly: true }
+        - { name: tmp,   mountPath: /tmp }
+      volumes:
+      - { name: registry, persistentVolumeClaim: { claimName: model-store, readOnly: true } }
+      - { name: model, emptyDir: {} }
+      - { name: tmp,   emptyDir: {} }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: inference-candidate, namespace: ml }
+spec:
+  selector: { app: inference, track: candidate }
+  ports: [{ name: http, port: 80, targetPort: http }]

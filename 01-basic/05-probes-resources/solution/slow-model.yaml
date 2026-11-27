@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: slow-model
+  labels:
+    app: slow-model
+spec:
+  containers:
+  - name: server
+    image: fti-lab:0.1
+    imagePullPolicy: IfNotPresent
+    env:
+    - name: STARTUP_DELAY
+      value: "40"
+    ports:
+    - containerPort: 8080
+      name: http
+    # startupProbe: daje do 5 s x 30 = 150 s na start; liveness/readiness czekają, aż się powiedzie.
+    startupProbe:
+      httpGet: { path: /ready, port: http }
+      periodSeconds: 5
+      failureThreshold: 30
+    # readiness: czy model jest załadowany -> czy wpuszczać ruch z Service
+    readinessProbe:
+      httpGet: { path: /ready, port: http }
+      periodSeconds: 5
+    # liveness: czy proces żyje -> restart. NIE sprawdzaj tu zależności (Redis, GPU)!
+    livenessProbe:
+      httpGet: { path: /healthz, port: http }
+      periodSeconds: 10
+      failureThreshold: 3
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits:   { memory: 512Mi }       # bez limitu CPU -> brak throttlingu

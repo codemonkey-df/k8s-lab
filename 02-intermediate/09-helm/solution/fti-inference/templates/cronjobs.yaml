@@ -1,0 +1,22 @@
+{{- range $name, $schedule := .Values.featureCronjobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "fti.fullname" $ }}-features-{{ $name }}
+  labels: {{- include "fti.labels" $ | nindent 4 }}
+spec:
+  schedule: {{ $schedule | default "*/5 * * * *" | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 1800
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: features
+            image: {{ include "fti.image" $ }}
+            imagePullPolicy: {{ $.Values.image.pullPolicy }}
+            command: ["python", "-m", "fti.features", "--out", "/tmp/features"]
+{{- end }}

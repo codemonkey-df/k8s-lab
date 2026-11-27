@@ -1,0 +1,37 @@
+# Szablon Joba treningowego dla train.sh (PSA restricted + VAP: deadline, ttl, requests)
+apiVersion: batch/v1
+kind: Job
+metadata: { name: train-__VERSION__, namespace: ml, labels: { part-of: fti, model-version: __VERSION__ } }
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata: { labels: { app: training, part-of: fti, model-version: __VERSION__ } }
+    spec:
+      restartPolicy: Never
+      priorityClassName: training-batch
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, seccompProfile: { type: RuntimeDefault } }
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "fti.train"]
+        env:
+        - { name: MODEL_VERSION, value: __VERSION__ }
+        - { name: MODEL_DIR,     value: /models/__VERSION__ }
+        - { name: FEATURES_PATH, value: /data/features/latest.csv }
+        - { name: N_ESTIMATORS,  value: "__N_ESTIMATORS__" }
+        - { name: MAX_DEPTH,     value: "__MAX_DEPTH__" }
+        - { name: MIN_ACCURACY,  value: "__MIN_ACCURACY__" }
+        securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: [ALL] } }
+        resources: { requests: { cpu: 500m, memory: 512Mi }, limits: { memory: 1Gi } }
+        volumeMounts:
+        - { name: features, mountPath: /data/features, readOnly: true }
+        - { name: models,   mountPath: /models }
+        - { name: tmp,      mountPath: /tmp }
+      volumes:
+      - { name: features, persistentVolumeClaim: { claimName: features, readOnly: true } }
+      - { name: models,   persistentVolumeClaim: { claimName: model-store } }
+      - { name: tmp, emptyDir: {} }

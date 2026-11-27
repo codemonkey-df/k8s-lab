@@ -1,0 +1,16 @@
+# 1 fizyczne GPU -> 4 "wirtualne" nvidia.com/gpu (bez izolacji pamięci!)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-slicing-config
+  namespace: gpu-operator
+data:
+  any: |-
+    version: v1
+    flags:
+      migStrategy: none
+    sharing:
+      timeSlicing:
+        resources:
+        - name: nvidia.com/gpu
+          replicas: 4

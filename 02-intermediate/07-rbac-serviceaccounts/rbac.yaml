@@ -1,0 +1,39 @@
+# 1) Konto automatu MLOps: może uruchamiać i obserwować Joby treningowe w ml — nic więcej.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pipeline-runner
+  labels: { part-of: fti }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: training-launcher
+rules:
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pipeline-runner-training-launcher
+subjects:
+- kind: ServiceAccount
+  name: pipeline-runner
+  namespace: ml
+roleRef:
+  kind: Role
+  name: training-launcher
+  apiGroup: rbac.authorization.k8s.io
+---
+# 2) Inference nie potrzebuje API Kubernetesa -> nie montujemy tokena w ogóle.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: inference
+  labels: { part-of: fti }
+automountServiceAccountToken: false

@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: broken-05, namespace: debug }
+spec:
+  selector: { matchLabels: { app: broken-05 } }
+  template:
+    metadata: { labels: { app: broken-05, tier: model } }
+    spec:
+      containers:
+      - name: server
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        ports: [{ containerPort: 8080, name: http }]
+        resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 512Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: broken-05, namespace: debug }
+spec:
+  selector: { app: broken-05, tier: models }
+  ports: [{ port: 80, targetPort: 8000 }]

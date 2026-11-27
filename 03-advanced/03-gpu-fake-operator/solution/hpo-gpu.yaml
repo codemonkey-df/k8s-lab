@@ -1,0 +1,39 @@
+# Sweep HPO na puli GPU: 5 triali po 1 GPU, a węzeł ma 4 GPU -> 4 naraz, piąty czeka
+# (Pending: Insufficient nvidia.com/gpu) i startuje, gdy zwolni się karta.
+# Z time-slicingiem replicas: 4 węzeł miałby 16 "GPU" -> wszystkie 5 naraz (ale bez izolacji pamięci).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hpo-gpu
+  labels: { part-of: fti }
+spec:
+  completionMode: Indexed
+  completions: 5
+  parallelism: 5
+  backoffLimitPerIndex: 1
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: hpo-gpu }
+    spec:
+      restartPolicy: Never
+      priorityClassName: training-batch
+      tolerations:
+      - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - { key: pool, operator: In, values: [gpu] }
+      containers:
+      - name: trial
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "python -m fti.train --features /nonexistent && sleep 30"]
+        env:
+        - { name: SWEEP, value: "1" }
+        - { name: MODEL_DIR, value: /tmp/sweep }
+        resources:
+          limits: { nvidia.com/gpu: 1 }

@@ -1,0 +1,28 @@
+# Trening na 1 GPU: extended resource (requests == limits), toleration puli GPU.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gpu-train
+  labels: { part-of: fti }
+spec:
+  completions: 6
+  parallelism: 6            # 6 x 1 GPU > 4 GPU na węźle -> 2 czekają
+  backoffLimit: 0
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: gpu-train }
+    spec:
+      restartPolicy: Never
+      priorityClassName: training-batch
+      tolerations:
+      - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      containers:
+      - name: train
+        image: fti-lab:0.1
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c", "python -m fti.train --out /tmp/m --version gpu && sleep 60"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1

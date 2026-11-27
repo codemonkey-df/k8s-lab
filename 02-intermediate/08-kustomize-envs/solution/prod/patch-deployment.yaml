@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: server
+        resources:
+          requests: { cpu: 250m, memory: 512Mi }
+          limits:   { memory: 1Gi }

@@ -1,0 +1,19 @@
+# Zadania A+B: CronJob feature-pipeline — Pody "restricted" (A) i Joby z limitem czasu,
+# których wymaga VAP ml-job-guardrails (B; ttlSecondsAfterFinished już jest od I02).
+spec:
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+          - name: features
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: [ALL] }

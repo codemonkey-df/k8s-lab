@@ -1,0 +1,6 @@
+setup/kind-mlops.yaml
+__pycache__/
+*.pyc
+work/
+.venv/
+.ruff_cache/

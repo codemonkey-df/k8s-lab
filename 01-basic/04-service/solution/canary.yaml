@@ -1,0 +1,35 @@
+# Drugi Pod (kopia ../../03-pod/pod.yaml) z etykietą track=canary + Service tylko dla niego.
+# Service "inference" (selektor app=inference) obejmuje OBA Pody, "inference-canary" — tylko canary.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: inference-canary
+  labels:
+    app: inference
+    part-of: fti
+    track: canary
+spec:
+  containers:
+  - name: server
+    image: fti-lab:0.1
+    imagePullPolicy: IfNotPresent
+    ports:
+    - containerPort: 8080
+      name: http
+    readinessProbe:
+      httpGet: { path: /ready, port: http }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference-canary
+  labels:
+    part-of: fti
+spec:
+  selector:
+    app: inference
+    track: canary
+  ports:
+  - name: http
+    port: 80
+    targetPort: http

@@ -1,0 +1,45 @@
+# Namespace zespołu ML z budżetem zasobów — "kawałek platformy" dla zespołu NLP.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-nlp
+  labels:
+    team: nlp
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute
+  namespace: team-nlp
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.memory: 16Gi
+    requests.nvidia.com/gpu: "2"        # budżet GPU zespołu (A03)
+    persistentvolumeclaims: "5"
+    requests.storage: 50Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: objects
+  namespace: team-nlp
+spec:
+  hard:
+    pods: "20"
+    count/jobs.batch: "10"
+    services.nodeports: "0"             # zespół nie wystawia NodePortów — tylko Gateway
+---
+# Domyślne zasoby dla kontenerów bez resources (inaczej quota je odrzuci)
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: team-nlp
+spec:
+  limits:
+  - type: Container
+    defaultRequest: { cpu: 100m, memory: 128Mi }
+    default:        { memory: 512Mi }
+    max:            { memory: 8Gi }

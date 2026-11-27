@@ -1,0 +1,8 @@
+Model {{ .Values.model.version }} wdrożony jako {{ include "fti.fullname" . }} ({{ .Release.Namespace }}).
+
+Test:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "fti.fullname" . }} 8080:{{ .Values.service.port }}
+  curl -s localhost:8080/version
+{{- if .Values.gateway.enabled }}
+  curl -s http://{{ .Values.gateway.host }}/version
+{{- end }}

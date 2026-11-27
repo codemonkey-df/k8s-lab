@@ -1,0 +1,24 @@
+# emptyDir jako cache (np. pobrane wagi / tokenizer) — znika razem z Podem.
+# medium: Memory = tmpfs (szybko, ale liczy się do limitu pamięci!)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cache-demo
+spec:
+  restartPolicy: Never
+  containers:
+  - name: worker
+    image: fti-lab:0.1
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c", "cp -r /models/v0 /cache/ && ls -la /cache/v0 && df -h /cache && sleep 3600"]
+    volumeMounts:
+    - { name: models, mountPath: /models, readOnly: true }
+    - { name: cache,  mountPath: /cache }
+    resources:
+      limits: { memory: 256Mi }
+  volumes:
+  - name: models
+    persistentVolumeClaim: { claimName: model-store, readOnly: true }
+  - name: cache
+    emptyDir:
+      sizeLimit: 200Mi
